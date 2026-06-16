@@ -207,17 +207,22 @@ func TestSchedulesValidation(t *testing.T) {
 		name         string
 		origin, dest string
 		year, month  int
+		wantErr      string // substring proving validation rejected it (not a network decode error)
 	}{
-		{"bad month low", "DUB", "STN", 2026, 0},
-		{"bad month high", "DUB", "STN", 2026, 13},
-		{"bad year low", "DUB", "STN", 1999, 7},
-		{"bad year high", "DUB", "STN", 2101, 7},
-		{"bad origin", "XX", "STN", 2026, 7},
+		{"bad month low", "DUB", "STN", 2026, 0, "invalid month"},
+		{"bad month high", "DUB", "STN", 2026, 13, "invalid month"},
+		{"bad year low", "DUB", "STN", 1999, 7, "invalid year"},
+		{"bad year high", "DUB", "STN", 2101, 7, "invalid year"},
+		{"bad origin", "XX", "STN", 2026, 7, "invalid route"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := client.Schedules(ctx, tc.origin, tc.dest, tc.year, tc.month); err == nil {
-				t.Errorf("expected error for %s", tc.name)
+			_, err := client.Schedules(ctx, tc.origin, tc.dest, tc.year, tc.month)
+			if err == nil {
+				t.Fatalf("expected error for %s", tc.name)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("error = %q, want it to contain %q (a validation error, not a network failure)", err, tc.wantErr)
 			}
 		})
 	}
@@ -234,6 +239,25 @@ func TestRoundTripInboundValidation(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error for reversed inbound date range")
+	}
+	// Must be the inbound validation error, not a downstream network/decode error.
+	if !strings.Contains(err.Error(), "inbound") {
+		t.Errorf("error = %q, want the inbound date-range validation error", err)
+	}
+}
+
+func TestNegativeMaxPriceRejected(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	_, err := client.OneWayFares(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-02", MaxPrice: -1,
+	})
+	if err == nil {
+		t.Fatal("expected error for negative max_price")
+	}
+	if !strings.Contains(err.Error(), "max price") {
+		t.Errorf("error = %q, want the max-price validation error", err)
 	}
 }
 
