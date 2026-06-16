@@ -281,7 +281,7 @@ func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exp
 			Country:   in.Country,
 			Region:    in.Region,
 			City:      in.City,
-			Fare: ryanair.OneWayParams{
+			Fare: ryanair.FareWindow{
 				DateFrom: in.DateFrom,
 				DateTo:   in.DateTo,
 				Currency: in.Currency,

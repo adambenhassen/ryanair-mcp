@@ -217,6 +217,8 @@ func legToFlight(leg wireLeg) (Flight, error) {
 		f.PreviousPrice = &v
 	}
 	if leg.PriceUpdated > 0 {
+		// Best-effort advisory metadata: the epoch-millis value is trusted as-is
+		// (only guarded against the absent/zero case), not range-checked.
 		t := time.UnixMilli(leg.PriceUpdated)
 		f.PriceUpdated = &t
 	}

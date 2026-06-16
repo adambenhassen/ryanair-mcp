@@ -2,6 +2,7 @@ package ryanair
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -63,6 +64,21 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 	c.netSeasonal = seasonal
 	c.netFetched = time.Now()
 	return airports, routes, seasonal, nil
+}
+
+// validateFilter rejects a non-empty filter value that matches no airport's
+// code, turning a typo into an actionable error instead of a silently-empty
+// result. An empty value (no filter) always passes.
+func validateFilter(kind, value string, airports []Airport, code func(Airport) string) error {
+	if value == "" {
+		return nil
+	}
+	for _, a := range airports {
+		if code(a) == value {
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown %s code %q", kind, value)
 }
 
 // namesByCode indexes a list of code/name pairs by code.
@@ -129,6 +145,9 @@ func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) 
 	if !validIATA(o) {
 		return nil, fmt.Errorf("invalid origin IATA %q", params.Origin)
 	}
+	if params.WithFares && (params.Fare.DateFrom == "" || params.Fare.DateTo == "") {
+		return nil, errors.New("with_fares requires date_from and date_to")
+	}
 	airports, routes, seasonal, err := c.loadNetwork(ctx)
 	if err != nil {
 		return nil, err
@@ -139,12 +158,24 @@ func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) 
 		byCode[a.IataCode] = a
 	}
 
-	// Regular routes first, then seasonal-only ones, so a destination served
-	// both ways is reported as non-seasonal.
-	seen := make(map[string]bool)
+	// Validate filters against the known network codes so a typo is an error,
+	// not a silently-empty result (consistent with origin/group_by fail-fast).
 	country := normCountry(params.Country)
 	region := strings.ToUpper(strings.TrimSpace(params.Region))
 	city := strings.ToUpper(strings.TrimSpace(params.City))
+	if err := validateFilter("country", country, airports, func(a Airport) string { return a.CountryCode }); err != nil {
+		return nil, err
+	}
+	if err := validateFilter("region", region, airports, func(a Airport) string { return a.RegionCode }); err != nil {
+		return nil, err
+	}
+	if err := validateFilter("city", city, airports, func(a Airport) string { return a.CityCode }); err != nil {
+		return nil, err
+	}
+
+	// Regular routes first, then seasonal-only ones, so a destination served
+	// both ways is reported as non-seasonal.
+	seen := make(map[string]bool)
 
 	dests := make([]Destination, 0, len(routes[o])+len(seasonal[o]))
 	add := func(code string, isSeasonal bool) {
@@ -178,9 +209,12 @@ func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) 
 		return dests, nil
 	}
 
-	fare := params.Fare
-	fare.Origin = params.Origin
-	flights, err := c.OneWayFares(ctx, fare)
+	flights, err := c.OneWayFares(ctx, OneWayParams{
+		Origin:   params.Origin,
+		DateFrom: params.Fare.DateFrom,
+		DateTo:   params.Fare.DateTo,
+		Currency: params.Fare.Currency,
+	})
 	if err != nil {
 		return nil, err
 	}

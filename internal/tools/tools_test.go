@@ -156,6 +156,11 @@ func TestGroupDestinationsByCountry(t *testing.T) {
 	if len(groups[0].Destinations) != 2 {
 		t.Errorf("Spain destinations = %d, want 2", len(groups[0].Destinations))
 	}
+	// Members preserve first-seen order: AGP before BCN.
+	if groups[0].Destinations[0].IataCode != "AGP" || groups[0].Destinations[1].IataCode != "BCN" {
+		t.Errorf("Spain member order = [%s %s], want [AGP BCN]",
+			groups[0].Destinations[0].IataCode, groups[0].Destinations[1].IataCode)
+	}
 	if groups[1].Key != "gb" {
 		t.Errorf("group[1] key = %q, want gb", groups[1].Key)
 	}

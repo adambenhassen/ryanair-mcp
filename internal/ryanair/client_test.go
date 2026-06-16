@@ -286,7 +286,7 @@ func TestExploreWithFares(t *testing.T) {
 	dests, err := client.ExploreDestinations(context.Background(), ryanair.ExploreParams{
 		Origin:    "DUB",
 		WithFares: true,
-		Fare:      ryanair.OneWayParams{DateFrom: "2026-07-01", DateTo: "2026-07-31"},
+		Fare:      ryanair.FareWindow{DateFrom: "2026-07-01", DateTo: "2026-07-31"},
 	})
 	if err != nil {
 		t.Fatalf("ExploreDestinations: %v", err)
@@ -322,8 +322,9 @@ func TestPreviousPriceMapped(t *testing.T) {
 	if flights[0].PreviousPrice == nil || *flights[0].PreviousPrice != 19.99 {
 		t.Errorf("previous price = %v, want 19.99", flights[0].PreviousPrice)
 	}
-	if flights[0].PriceUpdated == nil {
-		t.Error("expected price_updated to be set")
+	wantUpdated := time.UnixMilli(1781642999000)
+	if flights[0].PriceUpdated == nil || !flights[0].PriceUpdated.Equal(wantUpdated) {
+		t.Errorf("price_updated = %v, want %v", flights[0].PriceUpdated, wantUpdated)
 	}
 
 	trips, err := client.RoundTripFares(ctx, ryanair.ReturnParams{
@@ -403,6 +404,61 @@ func TestExploreSeasonalAndFilter(t *testing.T) {
 	}
 }
 
+func TestExploreWithFaresAndFilter(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/api/views/locate/3/aggregate/all/en": "network.json",
+		"/farfnd/v4/oneWayFares":               "one_way_fares.json",
+	}))
+	dests, err := client.ExploreDestinations(context.Background(), ryanair.ExploreParams{
+		Origin: "DUB", Country: "ma", WithFares: true,
+		Fare: ryanair.FareWindow{DateFrom: "2026-07-01", DateTo: "2026-07-31"},
+	})
+	if err != nil {
+		t.Fatalf("explore with fares+filter: %v", err)
+	}
+	// Country filter narrows to AGA; the surviving destination still gets its
+	// cheapest fare (63.59, the cheaper of the two AGA fares in the fixture).
+	if len(dests) != 1 || dests[0].IataCode != "AGA" {
+		t.Fatalf("filtered dests = %+v, want [AGA]", dests)
+	}
+	if dests[0].Fare == nil || *dests[0].Fare != 63.59 {
+		t.Errorf("AGA fare = %v, want cheapest 63.59", dests[0].Fare)
+	}
+	// ACE is in the fares fixture but is not a DUB network destination — it must
+	// never leak into the output.
+	for _, d := range dests {
+		if d.IataCode == "ACE" {
+			t.Error("ACE should not appear (not a network destination)")
+		}
+	}
+}
+
+func TestExploreNetworkError(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	if _, err := client.ExploreDestinations(context.Background(), ryanair.ExploreParams{Origin: "DUB"}); err == nil {
+		t.Fatal("expected error when the network bundle fails to load")
+	}
+}
+
+func TestExploreUnknownFilterErrors(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/api/views/locate/3/aggregate/all/en": "network.json",
+	}))
+	if _, err := client.ExploreDestinations(context.Background(), ryanair.ExploreParams{
+		Origin: "DUB", Region: "ATLANTIS",
+	}); err == nil {
+		t.Error("expected error for unknown region code")
+	}
+}
+
 func TestMalformedDateErrors(t *testing.T) {
 	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
@@ -455,6 +511,21 @@ func TestAnywhereUnder(t *testing.T) {
 		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31",
 	}); err == nil {
 		t.Error("expected error when max_price is missing")
+	}
+
+	// Caller-supplied Destination/Country must be stripped (network-wide probe).
+	if _, err := client.AnywhereUnder(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31", MaxPrice: 100,
+		Destination: "STN", Country: "ES",
+	}); err != nil {
+		t.Fatalf("AnywhereUnder with dest/country: %v", err)
+	}
+	q := fs.lastQuery.Load()
+	if got := q.Get("arrivalAirportIataCode"); got != "" {
+		t.Errorf("arrivalAirportIataCode = %q, want empty (stripped)", got)
+	}
+	if got := q.Get("arrivalCountryCode"); got != "" {
+		t.Errorf("arrivalCountryCode = %q, want empty (stripped)", got)
 	}
 }
 

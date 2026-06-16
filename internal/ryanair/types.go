@@ -76,17 +76,22 @@ type Destination struct {
 	Fare     *float64 `json:"cheapest_fare,omitempty"`
 }
 
+// FareWindow is the date window (and optional currency) for the fares probe
+// used by ExploreDestinations when WithFares is true.
+type FareWindow struct {
+	DateFrom string // required when WithFares is true, ISO date
+	DateTo   string // required when WithFares is true, ISO date
+	Currency string // optional, ISO 4217
+}
+
 // ExploreParams selects and filters reachable destinations from an origin.
 type ExploreParams struct {
-	Origin    string // required, IATA
-	WithFares bool   // annotate each destination with its cheapest fare
-	Country   string // optional ISO2 filter
-	Region    string // optional region code filter
-	City      string // optional city code filter
-	// Fare configures the fares probe used when WithFares is true. Its Origin is
-	// overridden from ExploreParams.Origin; DateFrom/DateTo are required only
-	// when WithFares is true.
-	Fare OneWayParams
+	Origin    string     // required, IATA
+	WithFares bool       // annotate each destination with its cheapest fare
+	Country   string     // optional ISO2 filter
+	Region    string     // optional region code filter
+	City      string     // optional city code filter
+	Fare      FareWindow // date window for the fares probe (used when WithFares)
 }
 
 // --- Wire types (unexported, mirror Ryanair's JSON) ---
