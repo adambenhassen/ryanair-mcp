@@ -56,6 +56,12 @@
         },
         "soldOut": false,
         "unavailable": false
+      },
+      {
+        "day": "2026-07-05",
+        "price": null,
+        "soldOut": true,
+        "unavailable": false
       }
     ],
     "maxFare": {

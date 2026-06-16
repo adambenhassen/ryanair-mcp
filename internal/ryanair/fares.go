@@ -57,6 +57,9 @@ func (p OneWayParams) values() (url.Values, error) {
 	if p.Country != "" {
 		q.Set("arrivalCountryCode", normCountry(p.Country))
 	}
+	if p.MaxPrice < 0 {
+		return nil, fmt.Errorf("max price must be >= 0, got %d", p.MaxPrice)
+	}
 	if p.MaxPrice > 0 {
 		q.Set("priceValueTo", itoa(p.MaxPrice))
 	}

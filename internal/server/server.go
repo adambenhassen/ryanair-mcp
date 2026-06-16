@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -60,10 +61,18 @@ func RunHTTP(ctx context.Context, srv *mcp.Server, addr string) error {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), httpReadHeaderTimeout)
 		defer cancel()
+		var shutdownErr error
 		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("server: http shutdown: %w", err)
+			shutdownErr = fmt.Errorf("server: http shutdown: %w", err)
 		}
-		return nil
+		// The goroutine always sends exactly once, so this read is safe and
+		// surfaces a real serve failure that raced with shutdown rather than
+		// silently dropping it.
+		var serveErr error
+		if err := <-errCh; err != nil {
+			serveErr = fmt.Errorf("server: http serve: %w", err)
+		}
+		return errors.Join(serveErr, shutdownErr)
 	case err := <-errCh:
 		if err != nil {
 			return fmt.Errorf("server: http serve: %w", err)

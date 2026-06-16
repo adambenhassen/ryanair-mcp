@@ -177,6 +177,64 @@ func TestCheapestPerDay(t *testing.T) {
 			t.Error("daily fare missing day")
 		}
 	}
+	// A sold-out day has no price and no times; the flags must propagate.
+	var soldOut *ryanair.DailyFare
+	for i := range days {
+		if days[i].Day == "2026-07-05" {
+			soldOut = &days[i]
+		}
+	}
+	if soldOut == nil {
+		t.Fatal("expected the sold-out day 2026-07-05")
+	}
+	if !soldOut.SoldOut {
+		t.Error("2026-07-05 should be SoldOut")
+	}
+	if soldOut.Price != nil {
+		t.Errorf("sold-out day price = %v, want nil", soldOut.Price)
+	}
+	if soldOut.DepartureTime != nil || soldOut.ArrivalTime != nil {
+		t.Error("sold-out day should have nil times")
+	}
+}
+
+func TestSchedulesValidation(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	ctx := context.Background()
+	cases := []struct {
+		name         string
+		origin, dest string
+		year, month  int
+	}{
+		{"bad month low", "DUB", "STN", 2026, 0},
+		{"bad month high", "DUB", "STN", 2026, 13},
+		{"bad year low", "DUB", "STN", 1999, 7},
+		{"bad year high", "DUB", "STN", 2101, 7},
+		{"bad origin", "XX", "STN", 2026, 7},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := client.Schedules(ctx, tc.origin, tc.dest, tc.year, tc.month); err == nil {
+				t.Errorf("expected error for %s", tc.name)
+			}
+		})
+	}
+}
+
+func TestRoundTripInboundValidation(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	// Outbound window valid, inbound reversed → must error on the inbound check.
+	_, err := client.RoundTripFares(context.Background(), ryanair.ReturnParams{
+		OneWayParams: ryanair.OneWayParams{Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-15"},
+		ReturnFrom:   "2026-07-22", ReturnTo: "2026-07-08",
+	})
+	if err == nil {
+		t.Fatal("expected error for reversed inbound date range")
+	}
 }
 
 func TestSchedules(t *testing.T) {
