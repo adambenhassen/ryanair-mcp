@@ -10,19 +10,20 @@ import (
 
 const networkEndpoint = "api/views/locate/3/aggregate/all/en"
 
-// loadNetwork fetches the network bundle, caching it for the configured TTL.
-// It returns the airport list and a route map (origin IATA -> destination IATAs).
-func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]string, error) {
+// loadNetwork fetches the network bundle, caching it for the configured TTL. It
+// returns the airport list, a regular-route map, and a seasonal-route map (both
+// origin IATA -> destination IATAs).
+func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]string, map[string][]string, error) {
 	c.netMu.Lock()
 	defer c.netMu.Unlock()
 
 	if c.netCache != nil && time.Since(c.netFetched) < c.netTTL {
-		return c.netCache, c.netRoutes, nil
+		return c.netCache, c.netRoutes, c.netSeasonal, nil
 	}
 
 	var resp wireNetworkResponse
 	if err := getJSON(ctx, c, networkEndpoint, wwwHost+"/"+networkEndpoint, nil, &resp); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	regionNames := namesByCode(resp.Regions)
@@ -30,6 +31,7 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 
 	airports := make([]Airport, 0, len(resp.Airports))
 	routes := make(map[string][]string, len(resp.Airports))
+	seasonal := make(map[string][]string)
 	for _, a := range resp.Airports {
 		airports = append(airports, Airport{
 			IataCode:     a.IataCode,
@@ -46,18 +48,19 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 			Longitude:    a.Coordinates.Longitude,
 			Base:         a.Base,
 		})
-		dests := make([]string, 0, len(a.Routes)+len(a.SeasonalRoutes))
-		dests = appendRouteAirports(dests, a.Routes)
-		dests = appendRouteAirports(dests, a.SeasonalRoutes)
-		if len(dests) > 0 {
-			routes[a.IataCode] = dests
+		if r := appendRouteAirports(nil, a.Routes); len(r) > 0 {
+			routes[a.IataCode] = r
+		}
+		if s := appendRouteAirports(nil, a.SeasonalRoutes); len(s) > 0 {
+			seasonal[a.IataCode] = s
 		}
 	}
 
 	c.netCache = airports
 	c.netRoutes = routes
+	c.netSeasonal = seasonal
 	c.netFetched = time.Now()
-	return airports, routes, nil
+	return airports, routes, seasonal, nil
 }
 
 // namesByCode indexes a list of code/name pairs by code.
@@ -82,7 +85,7 @@ func appendRouteAirports(dst, routes []string) []string {
 
 // ListAirports returns all airports, optionally filtered by ISO2 country code.
 func (c *Client) ListAirports(ctx context.Context, country string) ([]Airport, error) {
-	airports, _, err := c.loadNetwork(ctx)
+	airports, _, _, err := c.loadNetwork(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,22 +109,23 @@ func (c *Client) ValidateRoute(ctx context.Context, origin, dest string) (bool, 
 	if !validIATA(o) || !validIATA(d) {
 		return false, fmt.Errorf("invalid route %q-%q", origin, dest)
 	}
-	_, routes, err := c.loadNetwork(ctx)
+	_, routes, seasonal, err := c.loadNetwork(ctx)
 	if err != nil {
 		return false, err
 	}
-	return slices.Contains(routes[o], d), nil
+	return slices.Contains(routes[o], d) || slices.Contains(seasonal[o], d), nil
 }
 
-// ExploreDestinations lists airports reachable from origin. When withFares is
-// true, each destination carries its cheapest one-way fare in the given window
-// (nil when no fare was found), via a single "anywhere" fares probe.
-func (c *Client) ExploreDestinations(ctx context.Context, origin string, withFares bool, fare OneWayParams) ([]Destination, error) {
-	o := normIATA(origin)
+// ExploreDestinations lists airports reachable from an origin, flagging
+// seasonal-only routes and applying optional country/region/city filters. When
+// WithFares is true, each destination carries its cheapest one-way fare in the
+// given window (nil when no fare was found), via a single "anywhere" fares probe.
+func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) ([]Destination, error) {
+	o := normIATA(params.Origin)
 	if !validIATA(o) {
-		return nil, fmt.Errorf("invalid origin IATA %q", origin)
+		return nil, fmt.Errorf("invalid origin IATA %q", params.Origin)
 	}
-	airports, routes, err := c.loadNetwork(ctx)
+	airports, routes, seasonal, err := c.loadNetwork(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,18 +135,47 @@ func (c *Client) ExploreDestinations(ctx context.Context, origin string, withFar
 		byCode[a.IataCode] = a
 	}
 
-	dests := make([]Destination, 0, len(routes[o]))
-	for _, code := range routes[o] {
-		if a, ok := byCode[code]; ok {
-			dests = append(dests, Destination{Airport: a})
+	// Regular routes first, then seasonal-only ones, so a destination served
+	// both ways is reported as non-seasonal.
+	seen := make(map[string]bool)
+	country := normCountry(params.Country)
+	region := strings.ToUpper(strings.TrimSpace(params.Region))
+	city := strings.ToUpper(strings.TrimSpace(params.City))
+
+	dests := make([]Destination, 0, len(routes[o])+len(seasonal[o]))
+	add := func(code string, isSeasonal bool) {
+		if seen[code] {
+			return
 		}
+		seen[code] = true
+		a, ok := byCode[code]
+		if !ok {
+			return
+		}
+		if country != "" && a.CountryCode != country {
+			return
+		}
+		if region != "" && a.RegionCode != region {
+			return
+		}
+		if city != "" && a.CityCode != city {
+			return
+		}
+		dests = append(dests, Destination{Airport: a, Seasonal: isSeasonal})
+	}
+	for _, code := range routes[o] {
+		add(code, false)
+	}
+	for _, code := range seasonal[o] {
+		add(code, true)
 	}
 
-	if !withFares {
+	if !params.WithFares {
 		return dests, nil
 	}
 
-	fare.Origin = origin
+	fare := params.Fare
+	fare.Origin = params.Origin
 	flights, err := c.OneWayFares(ctx, fare)
 	if err != nil {
 		return nil, err

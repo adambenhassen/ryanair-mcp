@@ -280,9 +280,10 @@ func TestExploreWithFares(t *testing.T) {
 		"/farfnd/v4/oneWayFares":               "one_way_fares.json",
 	}))
 
-	dests, err := client.ExploreDestinations(context.Background(), "DUB", true, ryanair.OneWayParams{
-		DateFrom: "2026-07-01",
-		DateTo:   "2026-07-31",
+	dests, err := client.ExploreDestinations(context.Background(), ryanair.ExploreParams{
+		Origin:    "DUB",
+		WithFares: true,
+		Fare:      ryanair.OneWayParams{DateFrom: "2026-07-01", DateTo: "2026-07-31"},
 	})
 	if err != nil {
 		t.Fatalf("ExploreDestinations: %v", err)
@@ -334,6 +335,44 @@ func TestPreviousPriceMapped(t *testing.T) {
 	}
 	if !trips[0].NewRoute {
 		t.Error("expected new_route to be true")
+	}
+}
+
+func TestExploreSeasonalAndFilter(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/api/views/locate/3/aggregate/all/en": "network.json",
+	}))
+	ctx := context.Background()
+
+	dests, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "DUB"})
+	if err != nil {
+		t.Fatalf("ExploreDestinations: %v", err)
+	}
+	var aga *ryanair.Destination
+	for i := range dests {
+		if dests[i].IataCode == "AGA" {
+			aga = &dests[i]
+		}
+	}
+	if aga == nil || !aga.Seasonal {
+		t.Errorf("AGA should be present and seasonal, got %+v", aga)
+	}
+
+	es, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "DUB", Country: "ES"})
+	if err != nil {
+		t.Fatalf("explore ES: %v", err)
+	}
+	if len(es) != 1 || es[0].IataCode != "BCN" {
+		t.Errorf("country filter = %+v, want [BCN]", es)
+	}
+
+	region, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "DUB", Region: "ENGLAND"})
+	if err != nil {
+		t.Fatalf("explore region: %v", err)
+	}
+	if len(region) != 1 || region[0].IataCode != "STN" {
+		t.Errorf("region filter = %+v, want [STN]", region)
 	}
 }
 

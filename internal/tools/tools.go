@@ -5,6 +5,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/adambenhassen/ryanair-mcp/internal/ryanair"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -218,22 +219,75 @@ type exploreInput struct {
 	DateFrom  string `json:"date_from,omitempty"  jsonschema:"earliest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
 	DateTo    string `json:"date_to,omitempty"    jsonschema:"latest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
 	Currency  string `json:"currency,omitempty"   jsonschema:"optional ISO 4217 currency"`
+	Country   string `json:"country,omitempty"    jsonschema:"optional arrival country ISO2 filter, e.g. es"`
+	Region    string `json:"region,omitempty"     jsonschema:"optional region-code filter, e.g. CATALONIA"`
+	City      string `json:"city,omitempty"       jsonschema:"optional city-code filter, e.g. LONDON"`
+	GroupBy   string `json:"group_by,omitempty"   jsonschema:"optional grouping: 'country' or 'region'; omit for a flat list"`
+}
+
+type destinationGroup struct {
+	Key          string                `json:"key"`
+	Name         string                `json:"name"`
+	Destinations []ryanair.Destination `json:"destinations"`
 }
 
 type exploreOutput struct {
-	Destinations []ryanair.Destination `json:"destinations"`
+	Destinations []ryanair.Destination `json:"destinations,omitempty"`
+	Groups       []destinationGroup    `json:"groups,omitempty"`
 }
 
 func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exploreOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in exploreInput) (*mcp.CallToolResult, exploreOutput, error) {
-		dests, err := c.ExploreDestinations(ctx, in.Origin, in.WithFares, ryanair.OneWayParams{
-			DateFrom: in.DateFrom,
-			DateTo:   in.DateTo,
-			Currency: in.Currency,
+		dests, err := c.ExploreDestinations(ctx, ryanair.ExploreParams{
+			Origin:    in.Origin,
+			WithFares: in.WithFares,
+			Country:   in.Country,
+			Region:    in.Region,
+			City:      in.City,
+			Fare: ryanair.OneWayParams{
+				DateFrom: in.DateFrom,
+				DateTo:   in.DateTo,
+				Currency: in.Currency,
+			},
 		})
 		if err != nil {
 			return nil, exploreOutput{}, err
 		}
-		return nil, exploreOutput{Destinations: dests}, nil
+		if in.GroupBy == "" {
+			return nil, exploreOutput{Destinations: dests}, nil
+		}
+		groups, err := groupDestinations(dests, in.GroupBy)
+		if err != nil {
+			return nil, exploreOutput{}, err
+		}
+		return nil, exploreOutput{Groups: groups}, nil
 	}
+}
+
+// groupDestinations buckets destinations by country or region, preserving
+// first-seen order of both groups and their members.
+func groupDestinations(dests []ryanair.Destination, by string) ([]destinationGroup, error) {
+	type keyName struct{ key, name string }
+	var pick func(ryanair.Destination) keyName
+	switch by {
+	case "country":
+		pick = func(d ryanair.Destination) keyName { return keyName{d.CountryCode, d.CountryName} }
+	case "region":
+		pick = func(d ryanair.Destination) keyName { return keyName{d.RegionCode, d.RegionName} }
+	default:
+		return nil, fmt.Errorf("invalid group_by %q (want country or region)", by)
+	}
+	groups := make([]destinationGroup, 0)
+	index := make(map[string]int)
+	for _, d := range dests {
+		kn := pick(d)
+		i, ok := index[kn.key]
+		if !ok {
+			i = len(groups)
+			index[kn.key] = i
+			groups = append(groups, destinationGroup{Key: kn.key, Name: kn.name})
+		}
+		groups[i].Destinations = append(groups[i].Destinations, d)
+	}
+	return groups, nil
 }

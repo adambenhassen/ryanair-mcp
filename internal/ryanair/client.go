@@ -55,11 +55,12 @@ type Client struct {
 	primeOnce sync.Once
 	primeErr  error
 
-	netMu      sync.Mutex
-	netCache   []Airport
-	netRoutes  map[string][]string
-	netFetched time.Time
-	netTTL     time.Duration
+	netMu       sync.Mutex
+	netCache    []Airport
+	netRoutes   map[string][]string
+	netSeasonal map[string][]string
+	netFetched  time.Time
+	netTTL      time.Duration
 }
 
 // Option configures a Client.

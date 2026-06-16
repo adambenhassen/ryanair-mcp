@@ -71,7 +71,18 @@ type TimetableFlight struct {
 type Destination struct {
 	Airport
 
-	Fare *float64 `json:"cheapest_fare,omitempty"`
+	Seasonal bool     `json:"seasonal,omitempty"`
+	Fare     *float64 `json:"cheapest_fare,omitempty"`
+}
+
+// ExploreParams selects and filters reachable destinations from an origin.
+type ExploreParams struct {
+	Origin    string // required, IATA
+	WithFares bool   // annotate each destination with its cheapest fare
+	Country   string // optional ISO2 filter
+	Region    string // optional region code filter
+	City      string // optional city code filter
+	Fare      OneWayParams
 }
 
 // --- Wire types (unexported, mirror Ryanair's JSON) ---
