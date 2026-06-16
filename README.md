@@ -89,6 +89,14 @@ golangci-lint run    # lint (strict config in .golangci.yml)
 Tests run against recorded fixtures in `internal/ryanair/testdata/` — no network
 access required.
 
+A build-tagged live smoke test hits the real Ryanair endpoints to catch
+wire-format or endpoint drift. It is excluded from normal builds and CI; run it
+explicitly:
+
+```sh
+go test -tags live ./internal/ryanair/ -v
+```
+
 ### Layout
 
 ```
