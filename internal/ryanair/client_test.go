@@ -459,6 +459,18 @@ func TestExploreUnknownFilterErrors(t *testing.T) {
 	}
 }
 
+func TestReversedDateRangeRejected(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	_, err := client.OneWayFares(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-31", DateTo: "2026-07-01",
+	})
+	if err == nil {
+		t.Fatal("expected error for reversed date range (from after to)")
+	}
+}
+
 func TestMalformedDateErrors(t *testing.T) {
 	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
