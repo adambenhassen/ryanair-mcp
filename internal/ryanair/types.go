@@ -102,14 +102,8 @@ type wirePrice struct {
 }
 
 type wireAirport struct {
-	CountryName string `json:"countryName"`
-	IataCode    string `json:"iataCode"`
-	Name        string `json:"name"`
-	City        struct {
-		Name        string `json:"name"`
-		Code        string `json:"code"`
-		CountryCode string `json:"countryCode"`
-	} `json:"city"`
+	IataCode string `json:"iataCode"`
+	Name     string `json:"name"`
 }
 
 type wireLeg struct {
