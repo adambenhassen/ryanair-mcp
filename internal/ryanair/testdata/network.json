@@ -1,0 +1,48 @@
+{
+  "airports": [
+    {
+      "iataCode": "DUB",
+      "name": "Dublin",
+      "countryCode": "ie",
+      "cityCode": "DUBLIN",
+      "currencyCode": "EUR",
+      "base": true,
+      "coordinates": { "latitude": 53.421333, "longitude": -6.270075 },
+      "routes": ["airport:STN", "airport:BCN", "city:LONDON", "country:gb"],
+      "seasonalRoutes": ["airport:AGA"]
+    },
+    {
+      "iataCode": "STN",
+      "name": "London Stansted",
+      "countryCode": "gb",
+      "cityCode": "LONDON",
+      "currencyCode": "GBP",
+      "base": true,
+      "coordinates": { "latitude": 51.885, "longitude": 0.235 },
+      "routes": ["airport:DUB"],
+      "seasonalRoutes": []
+    },
+    {
+      "iataCode": "BCN",
+      "name": "Barcelona",
+      "countryCode": "es",
+      "cityCode": "BARCELONA",
+      "currencyCode": "EUR",
+      "base": false,
+      "coordinates": { "latitude": 41.297078, "longitude": 2.078464 },
+      "routes": ["airport:DUB"],
+      "seasonalRoutes": []
+    },
+    {
+      "iataCode": "AGA",
+      "name": "Agadir",
+      "countryCode": "ma",
+      "cityCode": "AGADIR",
+      "currencyCode": "MAD",
+      "base": false,
+      "coordinates": { "latitude": 30.325, "longitude": -9.413 },
+      "routes": ["airport:DUB"],
+      "seasonalRoutes": []
+    }
+  ]
+}

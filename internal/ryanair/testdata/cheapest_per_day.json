@@ -1,0 +1,90 @@
+{
+  "outbound": {
+    "fares": [
+      {
+        "day": "2026-07-01",
+        "arrivalDate": "2026-07-01T23:20:00",
+        "departureDate": "2026-07-01T22:00:00",
+        "price": {
+          "value": 18.99,
+          "valueMainUnit": "18",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-02",
+        "arrivalDate": "2026-07-02T09:50:00",
+        "departureDate": "2026-07-02T08:30:00",
+        "price": {
+          "value": 46.36,
+          "valueMainUnit": "46",
+          "valueFractionalUnit": "36",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-03",
+        "arrivalDate": "2026-07-03T22:25:00",
+        "departureDate": "2026-07-03T21:05:00",
+        "price": {
+          "value": 33.99,
+          "valueMainUnit": "33",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-04",
+        "arrivalDate": "2026-07-04T21:20:00",
+        "departureDate": "2026-07-04T20:00:00",
+        "price": {
+          "value": 42.26,
+          "valueMainUnit": "42",
+          "valueFractionalUnit": "26",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "soldOut": false,
+        "unavailable": false
+      }
+    ],
+    "maxFare": {
+      "day": "2026-07-02",
+      "arrivalDate": "2026-07-02T09:50:00",
+      "departureDate": "2026-07-02T08:30:00",
+      "price": {
+        "value": 46.36,
+        "valueMainUnit": "46",
+        "valueFractionalUnit": "36",
+        "currencyCode": "EUR",
+        "currencySymbol": "\u20ac"
+      },
+      "soldOut": false,
+      "unavailable": false
+    },
+    "minFare": {
+      "day": "2026-07-07",
+      "arrivalDate": "2026-07-07T23:20:00",
+      "departureDate": "2026-07-07T22:00:00",
+      "price": {
+        "value": 14.98,
+        "valueMainUnit": "14",
+        "valueFractionalUnit": "98",
+        "currencyCode": "EUR",
+        "currencySymbol": "\u20ac"
+      },
+      "soldOut": false,
+      "unavailable": false
+    }
+  }
+}

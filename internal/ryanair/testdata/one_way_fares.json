@@ -1,0 +1,107 @@
+{
+  "arrivalAirportCategories": null,
+  "fares": [
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "Ireland",
+          "iataCode": "DUB",
+          "name": "Dublin",
+          "seoName": "dublin",
+          "city": {
+            "code": "DUBLIN",
+            "countryCode": "ie",
+            "name": "Dublin"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Morocco",
+          "iataCode": "AGA",
+          "name": "Agadir",
+          "seoName": "agadir",
+          "city": {
+            "code": "AGADIR",
+            "countryCode": "ma",
+            "name": "Agadir"
+          }
+        },
+        "departureDate": "2026-07-26T16:55:00",
+        "arrivalDate": "2026-07-26T20:45:00",
+        "price": {
+          "value": 63.59,
+          "valueMainUnit": "63",
+          "valueFractionalUnit": "59",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "flightKey": "FR~6885~ ~~DUB~07/26/2026 16:55~AGA~07/26/2026 20:45~~",
+        "flightNumber": "FR6885",
+        "previousPrice": null,
+        "priceUpdated": 1781642999000
+      },
+      "summary": {
+        "price": {
+          "value": 63.59,
+          "valueMainUnit": "63",
+          "valueFractionalUnit": "59",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "previousPrice": null,
+        "newRoute": false
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "Ireland",
+          "iataCode": "DUB",
+          "name": "Dublin",
+          "seoName": "dublin",
+          "city": {
+            "code": "DUBLIN",
+            "countryCode": "ie",
+            "name": "Dublin"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Spain",
+          "iataCode": "ACE",
+          "name": "Lanzarote",
+          "seoName": "lanzarote",
+          "city": {
+            "code": "LANZAROTE",
+            "countryCode": "es",
+            "name": "Lanzarote"
+          }
+        },
+        "departureDate": "2026-07-30T15:30:00",
+        "arrivalDate": "2026-07-30T19:45:00",
+        "price": {
+          "value": 73.67,
+          "valueMainUnit": "73",
+          "valueFractionalUnit": "67",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "flightKey": "FR~7199~ ~~DUB~07/30/2026 15:30~ACE~07/30/2026 19:45~~",
+        "flightNumber": "FR7199",
+        "previousPrice": null,
+        "priceUpdated": 1781621335000
+      },
+      "summary": {
+        "price": {
+          "value": 73.67,
+          "valueMainUnit": "73",
+          "valueFractionalUnit": "67",
+          "currencyCode": "EUR",
+          "currencySymbol": "\u20ac"
+        },
+        "previousPrice": null,
+        "newRoute": false
+      }
+    }
+  ],
+  "nextPage": 1,
+  "size": 2
+}

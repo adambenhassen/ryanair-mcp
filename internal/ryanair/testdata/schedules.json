@@ -1,0 +1,111 @@
+{
+  "month": 7,
+  "days": [
+    {
+      "day": 1,
+      "flights": [
+        {
+          "carrierCode": "FR",
+          "number": "30",
+          "departureTime": "06:30",
+          "arrivalTime": "07:50"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "272",
+          "departureTime": "08:30",
+          "arrivalTime": "09:50"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "202",
+          "departureTime": "11:25",
+          "arrivalTime": "12:45"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "204",
+          "departureTime": "16:15",
+          "arrivalTime": "17:35"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "290",
+          "departureTime": "18:15",
+          "arrivalTime": "19:35"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "211",
+          "departureTime": "20:00",
+          "arrivalTime": "21:20"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "255",
+          "departureTime": "21:00",
+          "arrivalTime": "22:20"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "292",
+          "departureTime": "22:00",
+          "arrivalTime": "23:20"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "flights": [
+        {
+          "carrierCode": "FR",
+          "number": "30",
+          "departureTime": "06:30",
+          "arrivalTime": "07:50"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "272",
+          "departureTime": "08:30",
+          "arrivalTime": "09:50"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "288",
+          "departureTime": "10:15",
+          "arrivalTime": "11:35"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "202",
+          "departureTime": "11:30",
+          "arrivalTime": "12:50"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "204",
+          "departureTime": "16:15",
+          "arrivalTime": "17:35"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "290",
+          "departureTime": "18:10",
+          "arrivalTime": "19:30"
+        },
+        {
+          "carrierCode": "FR",
+          "number": "211",
+          "departureTime": "20:00",
+          "arrivalTime": "21:20"
+        },
+        {
+          "carrierCode": "RK",
+          "number": "292",
+          "departureTime": "22:00",
+          "arrivalTime": "23:20"
+        }
+      ]
+    }
+  ]
+}
