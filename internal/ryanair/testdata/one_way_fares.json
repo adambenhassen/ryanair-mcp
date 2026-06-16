@@ -36,7 +36,13 @@
         },
         "flightKey": "FR~6885~ ~~DUB~07/26/2026 16:55~AGA~07/26/2026 20:45~~",
         "flightNumber": "FR6885",
-        "previousPrice": null,
+        "previousPrice": {
+          "value": 19.99,
+          "valueMainUnit": "19",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
         "priceUpdated": 1781642999000
       },
       "summary": {

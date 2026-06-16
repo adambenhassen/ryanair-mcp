@@ -18,24 +18,28 @@ type Airport struct {
 
 // Flight is a single leg with its cheapest fare in the requested window.
 type Flight struct {
-	Origin        string    `json:"origin"`
-	Destination   string    `json:"destination"`
-	OriginName    string    `json:"origin_name"`
-	DestName      string    `json:"destination_name"`
-	DepartureTime time.Time `json:"departure_time"`
-	ArrivalTime   time.Time `json:"arrival_time"`
-	FlightNumber  string    `json:"flight_number"`
-	Price         float64   `json:"price"`
-	Currency      string    `json:"currency"`
+	Origin        string     `json:"origin"`
+	Destination   string     `json:"destination"`
+	OriginName    string     `json:"origin_name"`
+	DestName      string     `json:"destination_name"`
+	DepartureTime time.Time  `json:"departure_time"`
+	ArrivalTime   time.Time  `json:"arrival_time"`
+	FlightNumber  string     `json:"flight_number"`
+	Price         float64    `json:"price"`
+	Currency      string     `json:"currency"`
+	PreviousPrice *float64   `json:"previous_price,omitempty"`
+	PriceUpdated  *time.Time `json:"price_updated,omitempty"`
 }
 
 // ReturnFlight pairs an outbound and inbound leg with the total trip price.
 type ReturnFlight struct {
-	Outbound     Flight  `json:"outbound"`
-	Inbound      Flight  `json:"inbound"`
-	TotalPrice   float64 `json:"total_price"`
-	Currency     string  `json:"currency"`
-	TripDuration int     `json:"trip_duration_days"`
+	Outbound      Flight   `json:"outbound"`
+	Inbound       Flight   `json:"inbound"`
+	TotalPrice    float64  `json:"total_price"`
+	Currency      string   `json:"currency"`
+	TripDuration  int      `json:"trip_duration_days"`
+	PreviousPrice *float64 `json:"previous_price,omitempty"`
+	NewRoute      bool     `json:"new_route,omitempty"`
 }
 
 // DailyFare is the cheapest fare for a single day in a price calendar.
@@ -89,6 +93,8 @@ type wireLeg struct {
 	ArrivalDate      string      `json:"arrivalDate"`
 	Price            wirePrice   `json:"price"`
 	FlightNumber     string      `json:"flightNumber"`
+	PreviousPrice    *wirePrice  `json:"previousPrice"`
+	PriceUpdated     int64       `json:"priceUpdated"`
 }
 
 type wireFaresResponse struct {
@@ -96,8 +102,10 @@ type wireFaresResponse struct {
 		Outbound wireLeg `json:"outbound"`
 		Inbound  wireLeg `json:"inbound"`
 		Summary  struct {
-			Price            wirePrice `json:"price"`
-			TripDurationDays int       `json:"tripDurationDays"`
+			Price            wirePrice  `json:"price"`
+			TripDurationDays int        `json:"tripDurationDays"`
+			PreviousPrice    *wirePrice `json:"previousPrice"`
+			NewRoute         bool       `json:"newRoute"`
 		} `json:"summary"`
 	} `json:"fares"`
 }

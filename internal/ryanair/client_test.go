@@ -274,6 +274,42 @@ func TestExploreWithFares(t *testing.T) {
 	}
 }
 
+func TestPreviousPriceMapped(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/farfnd/v4/oneWayFares":    "one_way_fares.json",
+		"/farfnd/v4/roundTripFares": "round_trip_fares.json",
+	}))
+	ctx := context.Background()
+
+	flights, err := client.OneWayFares(ctx, ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31",
+	})
+	if err != nil {
+		t.Fatalf("OneWayFares: %v", err)
+	}
+	if flights[0].PreviousPrice == nil || *flights[0].PreviousPrice != 19.99 {
+		t.Errorf("previous price = %v, want 19.99", flights[0].PreviousPrice)
+	}
+	if flights[0].PriceUpdated == nil {
+		t.Error("expected price_updated to be set")
+	}
+
+	trips, err := client.RoundTripFares(ctx, ryanair.ReturnParams{
+		OneWayParams: ryanair.OneWayParams{Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-15"},
+		ReturnFrom:   "2026-07-08", ReturnTo: "2026-07-22",
+	})
+	if err != nil {
+		t.Fatalf("RoundTripFares: %v", err)
+	}
+	if trips[0].PreviousPrice == nil || *trips[0].PreviousPrice != 59.99 {
+		t.Errorf("trip previous price = %v, want 59.99", trips[0].PreviousPrice)
+	}
+	if !trips[0].NewRoute {
+		t.Error("expected new_route to be true")
+	}
+}
+
 func TestRetryClassification(t *testing.T) {
 	t.Run("429 is retried then succeeds", func(t *testing.T) {
 		var calls atomic.Int32

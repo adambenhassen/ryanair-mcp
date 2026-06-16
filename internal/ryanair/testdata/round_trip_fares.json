@@ -86,8 +86,14 @@
           "currencyCode": "EUR",
           "currencySymbol": "\u20ac"
         },
-        "previousPrice": null,
-        "newRoute": false,
+        "previousPrice": {
+          "value": 59.99,
+          "valueMainUnit": "59",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "newRoute": true,
         "tripDurationDays": 8
       }
     }

@@ -109,13 +109,19 @@ func (c *Client) RoundTripFares(ctx context.Context, params ReturnParams) ([]Ret
 	}
 	trips := make([]ReturnFlight, 0, len(resp.Fares))
 	for _, f := range resp.Fares {
-		trips = append(trips, ReturnFlight{
+		trip := ReturnFlight{
 			Outbound:     legToFlight(f.Outbound),
 			Inbound:      legToFlight(f.Inbound),
 			TotalPrice:   f.Summary.Price.Value,
 			Currency:     f.Summary.Price.CurrencyCode,
 			TripDuration: f.Summary.TripDurationDays,
-		})
+			NewRoute:     f.Summary.NewRoute,
+		}
+		if f.Summary.PreviousPrice != nil {
+			v := f.Summary.PreviousPrice.Value
+			trip.PreviousPrice = &v
+		}
+		trips = append(trips, trip)
 	}
 	return trips, nil
 }
@@ -144,7 +150,7 @@ func (c *Client) CheapestPerDay(ctx context.Context, origin, dest, month, curren
 }
 
 func legToFlight(leg wireLeg) Flight {
-	return Flight{
+	f := Flight{
 		Origin:        leg.DepartureAirport.IataCode,
 		Destination:   leg.ArrivalAirport.IataCode,
 		OriginName:    leg.DepartureAirport.Name,
@@ -155,6 +161,15 @@ func legToFlight(leg wireLeg) Flight {
 		Price:         leg.Price.Value,
 		Currency:      leg.Price.CurrencyCode,
 	}
+	if leg.PreviousPrice != nil {
+		v := leg.PreviousPrice.Value
+		f.PreviousPrice = &v
+	}
+	if leg.PriceUpdated > 0 {
+		t := time.UnixMilli(leg.PriceUpdated)
+		f.PriceUpdated = &t
+	}
+	return f
 }
 
 func dailyFares(raw []wireDailyFare) []DailyFare {
