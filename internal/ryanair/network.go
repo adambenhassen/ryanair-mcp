@@ -28,6 +28,7 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 
 	regionNames := namesByCode(resp.Regions)
 	countryNames := namesByCode(resp.Countries)
+	cityNames := namesByCode(resp.Cities)
 
 	airports := make([]Airport, 0, len(resp.Airports))
 	routes := make(map[string][]string, len(resp.Airports))
@@ -37,6 +38,7 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 			IataCode:     a.IataCode,
 			Name:         a.Name,
 			CityCode:     a.CityCode,
+			CityName:     cityNames[a.CityCode],
 			CountryCode:  a.CountryCode,
 			CountryName:  countryNames[a.CountryCode],
 			RegionCode:   a.RegionCode,

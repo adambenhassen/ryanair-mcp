@@ -189,4 +189,5 @@ type wireNetworkResponse struct {
 	Airports  []wireNetworkAirport `json:"airports"`
 	Regions   []wireNamed          `json:"regions"`
 	Countries []wireNamed          `json:"countries"`
+	Cities    []wireNamed          `json:"cities"`
 }

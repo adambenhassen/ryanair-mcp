@@ -79,7 +79,11 @@ func (c *Client) OneWayFares(ctx context.Context, params OneWayParams) ([]Flight
 	}
 	flights := make([]Flight, 0, len(resp.Fares))
 	for _, f := range resp.Fares {
-		flights = append(flights, legToFlight(f.Outbound))
+		flight, err := legToFlight(f.Outbound)
+		if err != nil {
+			return nil, err
+		}
+		flights = append(flights, flight)
 	}
 	return flights, nil
 }
@@ -140,9 +144,17 @@ func (c *Client) RoundTripFares(ctx context.Context, params ReturnParams) ([]Ret
 	}
 	trips := make([]ReturnFlight, 0, len(resp.Fares))
 	for _, f := range resp.Fares {
+		outbound, err := legToFlight(f.Outbound)
+		if err != nil {
+			return nil, err
+		}
+		inbound, err := legToFlight(f.Inbound)
+		if err != nil {
+			return nil, err
+		}
 		trip := ReturnFlight{
-			Outbound:     legToFlight(f.Outbound),
-			Inbound:      legToFlight(f.Inbound),
+			Outbound:     outbound,
+			Inbound:      inbound,
 			TotalPrice:   f.Summary.Price.Value,
 			Currency:     f.Summary.Price.CurrencyCode,
 			TripDuration: f.Summary.TripDurationDays,
@@ -180,14 +192,22 @@ func (c *Client) CheapestPerDay(ctx context.Context, origin, dest, month, curren
 	return dailyFares(resp.Outbound.Fares), nil
 }
 
-func legToFlight(leg wireLeg) Flight {
+func legToFlight(leg wireLeg) (Flight, error) {
+	dep, err := parseTime(leg.DepartureDate)
+	if err != nil {
+		return Flight{}, fmt.Errorf("ryanair: departure %s: %w", leg.FlightNumber, err)
+	}
+	arr, err := parseTime(leg.ArrivalDate)
+	if err != nil {
+		return Flight{}, fmt.Errorf("ryanair: arrival %s: %w", leg.FlightNumber, err)
+	}
 	f := Flight{
 		Origin:        leg.DepartureAirport.IataCode,
 		Destination:   leg.ArrivalAirport.IataCode,
 		OriginName:    leg.DepartureAirport.Name,
 		DestName:      leg.ArrivalAirport.Name,
-		DepartureTime: parseTime(leg.DepartureDate),
-		ArrivalTime:   parseTime(leg.ArrivalDate),
+		DepartureTime: dep,
+		ArrivalTime:   arr,
 		FlightNumber:  leg.FlightNumber,
 		Price:         leg.Price.Value,
 		Currency:      leg.Price.CurrencyCode,
@@ -200,7 +220,7 @@ func legToFlight(leg wireLeg) Flight {
 		t := time.UnixMilli(leg.PriceUpdated)
 		f.PriceUpdated = &t
 	}
-	return f
+	return f, nil
 }
 
 func dailyFares(raw []wireDailyFare) []DailyFare {
@@ -227,22 +247,24 @@ func dailyFares(raw []wireDailyFare) []DailyFare {
 	return out
 }
 
-// parseTime parses a Ryanair local datetime, returning the zero time on failure.
-func parseTime(s string) time.Time {
+// parseTime parses a Ryanair local datetime.
+func parseTime(s string) (time.Time, error) {
 	t, err := time.Parse("2006-01-02T15:04:05", s)
 	if err != nil {
-		return time.Time{}
+		return time.Time{}, fmt.Errorf("ryanair: parse time %q: %w", s, err)
 	}
-	return t
+	return t, nil
 }
 
-// parseOptTime parses an optional datetime, returning nil when absent/invalid.
+// parseOptTime parses an optional datetime, returning nil when absent or
+// unparseable. Used for calendar fares where times are genuinely optional.
 func parseOptTime(s string) *time.Time {
 	if s == "" {
 		return nil
 	}
-	if t := parseTime(s); !t.IsZero() {
-		return &t
+	t, err := parseTime(s)
+	if err != nil {
+		return nil
 	}
-	return nil
+	return &t
 }

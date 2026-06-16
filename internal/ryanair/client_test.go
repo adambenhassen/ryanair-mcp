@@ -262,6 +262,9 @@ func TestNetworkMetadataDepth(t *testing.T) {
 	if dub.CityCode != "DUBLIN" || dub.CurrencyCode != "EUR" {
 		t.Errorf("city/currency = %q/%q", dub.CityCode, dub.CurrencyCode)
 	}
+	if dub.CityName != "Dublin" {
+		t.Errorf("city name = %q, want Dublin", dub.CityName)
+	}
 	if dub.RegionCode != "LEINSTER" || dub.RegionName != "Leinster" {
 		t.Errorf("region = %q/%q, want LEINSTER/Leinster", dub.RegionCode, dub.RegionName)
 	}
@@ -397,6 +400,26 @@ func TestExploreSeasonalAndFilter(t *testing.T) {
 
 	if _, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "XX"}); err == nil {
 		t.Error("expected error for invalid origin IATA")
+	}
+}
+
+func TestMalformedDateErrors(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		body := `{"fares":[{"outbound":{"departureDate":"not-a-date","arrivalDate":"2026-07-01T10:00:00","price":{"value":10,"currencyCode":"EUR"},"flightNumber":"FR1"}}]}`
+		if _, err := w.Write([]byte(body)); err != nil {
+			t.Errorf("write: %v", err)
+		}
+	}))
+	_, err := client.OneWayFares(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-02",
+	})
+	if err == nil {
+		t.Fatal("expected error for malformed departure date")
 	}
 }
 

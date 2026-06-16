@@ -11,6 +11,12 @@
     { "code": "CATALONIA", "name": "Catalonia" },
     { "code": "SOUSS_MASSA", "name": "Souss-Massa" }
   ],
+  "cities": [
+    { "code": "DUBLIN", "name": "Dublin", "countryCode": "ie" },
+    { "code": "LONDON", "name": "London", "countryCode": "gb" },
+    { "code": "BARCELONA", "name": "Barcelona", "countryCode": "es" },
+    { "code": "AGADIR", "name": "Agadir", "countryCode": "ma" }
+  ],
   "airports": [
     {
       "iataCode": "DUB",
