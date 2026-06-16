@@ -25,16 +25,26 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 		return nil, nil, err
 	}
 
+	regionNames := namesByCode(resp.Regions)
+	countryNames := namesByCode(resp.Countries)
+
 	airports := make([]Airport, 0, len(resp.Airports))
 	routes := make(map[string][]string, len(resp.Airports))
 	for _, a := range resp.Airports {
 		airports = append(airports, Airport{
-			IataCode:    a.IataCode,
-			Name:        a.Name,
-			CountryCode: a.CountryCode,
-			Latitude:    a.Coordinates.Latitude,
-			Longitude:   a.Coordinates.Longitude,
-			Base:        a.Base,
+			IataCode:     a.IataCode,
+			Name:         a.Name,
+			CityCode:     a.CityCode,
+			CountryCode:  a.CountryCode,
+			CountryName:  countryNames[a.CountryCode],
+			RegionCode:   a.RegionCode,
+			RegionName:   regionNames[a.RegionCode],
+			CurrencyCode: a.CurrencyCode,
+			TimeZone:     a.TimeZone,
+			Aliases:      a.Aliases,
+			Latitude:     a.Coordinates.Latitude,
+			Longitude:    a.Coordinates.Longitude,
+			Base:         a.Base,
 		})
 		dests := make([]string, 0, len(a.Routes)+len(a.SeasonalRoutes))
 		dests = appendRouteAirports(dests, a.Routes)
@@ -48,6 +58,15 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 	c.netRoutes = routes
 	c.netFetched = time.Now()
 	return airports, routes, nil
+}
+
+// namesByCode indexes a list of code/name pairs by code.
+func namesByCode(items []wireNamed) map[string]string {
+	m := make(map[string]string, len(items))
+	for _, it := range items {
+		m[it.Code] = it.Name
+	}
+	return m
 }
 
 // appendRouteAirports extracts destination IATAs from "airport:XXX" route

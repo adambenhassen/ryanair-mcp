@@ -246,6 +246,33 @@ func TestListAirportsAndRoutes(t *testing.T) {
 	}
 }
 
+func TestNetworkMetadataDepth(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/api/views/locate/3/aggregate/all/en": "network.json",
+	}))
+	airports, err := client.ListAirports(context.Background(), "IE")
+	if err != nil {
+		t.Fatalf("ListAirports: %v", err)
+	}
+	dub := airports[0]
+	if dub.TimeZone != "Europe/Dublin" {
+		t.Errorf("timezone = %q, want Europe/Dublin", dub.TimeZone)
+	}
+	if dub.CityCode != "DUBLIN" || dub.CurrencyCode != "EUR" {
+		t.Errorf("city/currency = %q/%q", dub.CityCode, dub.CurrencyCode)
+	}
+	if dub.RegionCode != "LEINSTER" || dub.RegionName != "Leinster" {
+		t.Errorf("region = %q/%q, want LEINSTER/Leinster", dub.RegionCode, dub.RegionName)
+	}
+	if dub.CountryName != "Ireland" {
+		t.Errorf("country name = %q, want Ireland", dub.CountryName)
+	}
+	if len(dub.Aliases) == 0 {
+		t.Error("expected aliases")
+	}
+}
+
 func TestExploreWithFares(t *testing.T) {
 	fs := &fakeServer{}
 	client := newClient(t, routeFixtures(t, fs, map[string]string{

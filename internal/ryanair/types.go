@@ -6,14 +6,20 @@ import "time"
 
 // Airport is a Ryanair airport with its location metadata.
 type Airport struct {
-	IataCode    string  `json:"iata_code"`
-	Name        string  `json:"name"`
-	CityName    string  `json:"city_name"`
-	CountryCode string  `json:"country_code"`
-	CountryName string  `json:"country_name,omitempty"`
-	Latitude    float64 `json:"latitude,omitempty"`
-	Longitude   float64 `json:"longitude,omitempty"`
-	Base        bool    `json:"base,omitempty"`
+	IataCode     string   `json:"iata_code"`
+	Name         string   `json:"name"`
+	CityName     string   `json:"city_name"`
+	CityCode     string   `json:"city_code,omitempty"`
+	CountryCode  string   `json:"country_code"`
+	CountryName  string   `json:"country_name,omitempty"`
+	RegionCode   string   `json:"region_code,omitempty"`
+	RegionName   string   `json:"region_name,omitempty"`
+	CurrencyCode string   `json:"currency_code,omitempty"`
+	TimeZone     string   `json:"time_zone,omitempty"`
+	Aliases      []string `json:"aliases,omitempty"`
+	Latitude     float64  `json:"latitude,omitempty"`
+	Longitude    float64  `json:"longitude,omitempty"`
+	Base         bool     `json:"base,omitempty"`
 }
 
 // Flight is a single leg with its cheapest fare in the requested window.
@@ -142,12 +148,15 @@ type wireScheduleResponse struct {
 }
 
 type wireNetworkAirport struct {
-	IataCode     string `json:"iataCode"`
-	Name         string `json:"name"`
-	CountryCode  string `json:"countryCode"`
-	CityCode     string `json:"cityCode"`
-	CurrencyCode string `json:"currencyCode"`
-	Base         bool   `json:"base"`
+	IataCode     string   `json:"iataCode"`
+	Name         string   `json:"name"`
+	CountryCode  string   `json:"countryCode"`
+	CityCode     string   `json:"cityCode"`
+	RegionCode   string   `json:"regionCode"`
+	CurrencyCode string   `json:"currencyCode"`
+	TimeZone     string   `json:"timeZone"`
+	Aliases      []string `json:"aliases"`
+	Base         bool     `json:"base"`
 	Coordinates  struct {
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
@@ -156,6 +165,13 @@ type wireNetworkAirport struct {
 	SeasonalRoutes []string `json:"seasonalRoutes"`
 }
 
+type wireNamed struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
 type wireNetworkResponse struct {
-	Airports []wireNetworkAirport `json:"airports"`
+	Airports  []wireNetworkAirport `json:"airports"`
+	Regions   []wireNamed          `json:"regions"`
+	Countries []wireNamed          `json:"countries"`
 }
