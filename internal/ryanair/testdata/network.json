@@ -24,7 +24,7 @@
       "base": true,
       "coordinates": { "latitude": 53.421333, "longitude": -6.270075 },
       "routes": ["airport:STN", "airport:BCN", "city:LONDON", "country:gb"],
-      "seasonalRoutes": ["airport:AGA"]
+      "seasonalRoutes": ["airport:AGA", "airport:BCN"]
     },
     {
       "iataCode": "STN",

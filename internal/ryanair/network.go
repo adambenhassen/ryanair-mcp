@@ -117,9 +117,11 @@ func (c *Client) ValidateRoute(ctx context.Context, origin, dest string) (bool, 
 }
 
 // ExploreDestinations lists airports reachable from an origin, flagging
-// seasonal-only routes and applying optional country/region/city filters. When
-// WithFares is true, each destination carries its cheapest one-way fare in the
-// given window (nil when no fare was found), via a single "anywhere" fares probe.
+// seasonal-only routes and applying optional country/region/city filters. A
+// destination served by both a regular and a seasonal route is reported as
+// non-seasonal. When WithFares is true, each destination carries its cheapest
+// one-way fare in the given window (nil when no fare was found), via a single
+// "anywhere" fares probe.
 func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) ([]Destination, error) {
 	o := normIATA(params.Origin)
 	if !validIATA(o) {

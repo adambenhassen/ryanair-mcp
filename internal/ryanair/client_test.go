@@ -349,14 +349,26 @@ func TestExploreSeasonalAndFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExploreDestinations: %v", err)
 	}
-	var aga *ryanair.Destination
-	for i := range dests {
-		if dests[i].IataCode == "AGA" {
-			aga = &dests[i]
+	byCode := map[string]ryanair.Destination{}
+	for _, d := range dests {
+		byCode[d.IataCode] = d
+	}
+	if aga, ok := byCode["AGA"]; !ok || !aga.Seasonal {
+		t.Errorf("AGA should be present and seasonal, got %+v (ok=%v)", aga, ok)
+	}
+	// BCN is in both regular and seasonal routes; regular wins, so non-seasonal.
+	if bcn, ok := byCode["BCN"]; !ok || bcn.Seasonal {
+		t.Errorf("BCN served both ways should be non-seasonal, got %+v (ok=%v)", bcn, ok)
+	}
+	// BCN must appear exactly once despite being in both route sets.
+	var bcnCount int
+	for _, d := range dests {
+		if d.IataCode == "BCN" {
+			bcnCount++
 		}
 	}
-	if aga == nil || !aga.Seasonal {
-		t.Errorf("AGA should be present and seasonal, got %+v", aga)
+	if bcnCount != 1 {
+		t.Errorf("BCN appears %d times, want 1 (dedup across regular/seasonal)", bcnCount)
 	}
 
 	es, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "DUB", Country: "ES"})
@@ -373,6 +385,18 @@ func TestExploreSeasonalAndFilter(t *testing.T) {
 	}
 	if len(region) != 1 || region[0].IataCode != "STN" {
 		t.Errorf("region filter = %+v, want [STN]", region)
+	}
+
+	city, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "DUB", City: "LONDON"})
+	if err != nil {
+		t.Fatalf("explore city: %v", err)
+	}
+	if len(city) != 1 || city[0].IataCode != "STN" {
+		t.Errorf("city filter = %+v, want [STN]", city)
+	}
+
+	if _, err := client.ExploreDestinations(ctx, ryanair.ExploreParams{Origin: "XX"}); err == nil {
+		t.Error("expected error for invalid origin IATA")
 	}
 }
 

@@ -15,7 +15,7 @@ timetables, and the airport/route network. Written in Go, served over **stdio**
 | --- | --- | --- |
 | `search_one_way` | Cheapest one-way fares from an origin in a date window. Omit destination/country to search anywhere. | `origin`, `date_from`, `date_to`, *(opt)* `destination`, `country`, `max_price`, `currency` |
 | `search_return` | Cheapest return fares across outbound and inbound windows, with optional trip-length bounds. | `origin`, `date_from`, `date_to`, `return_from`, `return_to`, *(opt)* `min_trip_days`, `max_trip_days`, … |
-| `find_anywhere_under` | Cheapest reachable destination from an origin under a price cap, in a date window (cheapest per destination, sorted by price). | `origin`, `date_from`, `date_to`, `max_price`, *(opt)* `currency` |
+| `find_anywhere_under` | Cheapest one-way fare to each reachable destination from an origin under a price cap, in a date window — returns a list of flights, one per destination, sorted by price. | `origin`, `date_from`, `date_to`, `max_price`, *(opt)* `currency` |
 | `cheapest_per_day` | Cheapest one-way fare per day of a month on a route (price calendar). | `origin`, `destination`, `month` (`YYYY-MM-01`), *(opt)* `currency` |
 | `get_schedules` | Published timetable (days/times a route runs, no prices) for a month. | `origin`, `destination`, `year`, `month` |
 | `list_airports` | List Ryanair airports, optionally filtered by country. | *(opt)* `country` (ISO-3166 alpha-2) |
@@ -25,8 +25,9 @@ timetables, and the airport/route network. Written in Go, served over **stdio**
 Airport inputs are IATA codes (e.g. `DUB`, `STN`). Dates are ISO `YYYY-MM-DD`.
 Currencies are ISO 4217 (e.g. `EUR`).
 
-Fare results carry `previous_price`, `price_updated`, and `new_route` when
-Ryanair reports them, so callers can detect price drops and newly-added routes.
+Fare results carry price-history fields when Ryanair reports them, so callers can
+detect price drops and newly-added routes: one-way flights carry `previous_price`
+and `price_updated`; return trips carry `previous_price` and `new_route`.
 
 ## Build
 

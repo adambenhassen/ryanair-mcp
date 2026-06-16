@@ -68,6 +68,7 @@ type TimetableFlight struct {
 }
 
 // Destination is a reachable airport from an origin, optionally with a fare.
+// Fare is nil when fares were not requested or no fare was found.
 type Destination struct {
 	Airport
 
@@ -82,7 +83,10 @@ type ExploreParams struct {
 	Country   string // optional ISO2 filter
 	Region    string // optional region code filter
 	City      string // optional city code filter
-	Fare      OneWayParams
+	// Fare configures the fares probe used when WithFares is true. Its Origin is
+	// overridden from ExploreParams.Origin; DateFrom/DateTo are required only
+	// when WithFares is true.
+	Fare OneWayParams
 }
 
 // --- Wire types (unexported, mirror Ryanair's JSON) ---

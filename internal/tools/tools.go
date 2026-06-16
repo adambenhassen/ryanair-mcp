@@ -50,7 +50,7 @@ func Register(server *mcp.Server, client *ryanair.Client) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "explore_destinations",
-		Description: "List airports reachable from an origin, optionally annotated with the cheapest fare in a date window.",
+		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window, filter by country/region/city, and group by country or region.",
 	}, exploreDestinations(client))
 }
 
@@ -262,6 +262,8 @@ type destinationGroup struct {
 	Destinations []ryanair.Destination `json:"destinations"`
 }
 
+// exploreOutput carries either a flat destination list (when group_by is empty)
+// or grouped buckets (when group_by is set). Exactly one field is populated.
 type exploreOutput struct {
 	Destinations []ryanair.Destination `json:"destinations,omitempty"`
 	Groups       []destinationGroup    `json:"groups,omitempty"`
@@ -269,6 +271,10 @@ type exploreOutput struct {
 
 func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exploreOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in exploreInput) (*mcp.CallToolResult, exploreOutput, error) {
+		// Validate group_by up front so a bad value fails before any network call.
+		if in.GroupBy != "" && in.GroupBy != "country" && in.GroupBy != "region" {
+			return nil, exploreOutput{}, fmt.Errorf("invalid group_by %q (want country or region)", in.GroupBy)
+		}
 		dests, err := c.ExploreDestinations(ctx, ryanair.ExploreParams{
 			Origin:    in.Origin,
 			WithFares: in.WithFares,
