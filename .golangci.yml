@@ -1,0 +1,79 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - dogsled
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exptostd
+    - fatcontext
+    - gocheckcompilerdirectives
+    - gomoddirectives
+    - goprintffuncname
+    - govet
+    - ineffassign
+    - intrange
+    - iotamixing
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - reassign
+    - recvcheck
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - thelper
+    - unconvert
+    - unused
+    - usetesting
+    - wastedassign
+    - testifylint
+    - predeclared
+    - perfsprint
+    - modernize
+    - embeddedstructfieldcheck
+    - canonicalheader
+    - gocritic
+    - sloglint
+    - unqueryvet
+    - tagalign
+    - spancheck
+    - asciicheck
+    - gosec
+    - prealloc
+    - godoclint
+    - testpackage
+  settings:
+    errcheck:
+      check-blank: true
+      check-type-assertions: true
+  exclusions:
+    rules:
+      - path: _test\.go
+        text: "G304:"
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
