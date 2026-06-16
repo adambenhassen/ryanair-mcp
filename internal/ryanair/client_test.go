@@ -376,6 +376,41 @@ func TestExploreSeasonalAndFilter(t *testing.T) {
 	}
 }
 
+func TestAnywhereUnder(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/farfnd/v4/oneWayFares": "one_way_fares.json",
+	}))
+	flights, err := client.AnywhereUnder(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31", MaxPrice: 100,
+	})
+	if err != nil {
+		t.Fatalf("AnywhereUnder: %v", err)
+	}
+	seen := map[string]bool{}
+	for i, f := range flights {
+		if seen[f.Destination] {
+			t.Errorf("duplicate destination %q", f.Destination)
+		}
+		seen[f.Destination] = true
+		if i > 0 && flights[i-1].Price > f.Price {
+			t.Error("results not sorted ascending by price")
+		}
+	}
+	// AGA appears twice (63.59 and 89.00); cheapest must win.
+	for _, f := range flights {
+		if f.Destination == "AGA" && f.Price != 63.59 {
+			t.Errorf("AGA price = %v, want cheapest 63.59", f.Price)
+		}
+	}
+
+	if _, err := client.AnywhereUnder(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31",
+	}); err == nil {
+		t.Error("expected error when max_price is missing")
+	}
+}
+
 func TestRetryClassification(t *testing.T) {
 	t.Run("429 is retried then succeeds", func(t *testing.T) {
 		var calls atomic.Int32

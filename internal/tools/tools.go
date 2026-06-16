@@ -24,6 +24,11 @@ func Register(server *mcp.Server, client *ryanair.Client) {
 	}, searchReturn(client))
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "find_anywhere_under",
+		Description: "Find the cheapest reachable destination from an origin under a price cap, within a departure-date window. Returns the cheapest fare per destination, sorted by price.",
+	}, findAnywhereUnder(client))
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "cheapest_per_day",
 		Description: "Get the cheapest one-way fare for each day of a month on a specific route (price calendar).",
 	}, cheapestPerDay(client))
@@ -119,6 +124,32 @@ func searchReturn(c *ryanair.Client) mcp.ToolHandlerFor[returnInput, returnsOutp
 			return nil, returnsOutput{}, err
 		}
 		return nil, returnsOutput{Trips: trips}, nil
+	}
+}
+
+// --- find_anywhere_under ---
+
+type anywhereInput struct {
+	Origin   string `json:"origin"             jsonschema:"departure airport IATA code"`
+	DateFrom string `json:"date_from"          jsonschema:"earliest outbound date, ISO YYYY-MM-DD"`
+	DateTo   string `json:"date_to"            jsonschema:"latest outbound date, ISO YYYY-MM-DD"`
+	MaxPrice int    `json:"max_price"          jsonschema:"maximum price (required, must be > 0)"`
+	Currency string `json:"currency,omitempty" jsonschema:"optional ISO 4217 currency, e.g. EUR"`
+}
+
+func findAnywhereUnder(c *ryanair.Client) mcp.ToolHandlerFor[anywhereInput, flightsOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in anywhereInput) (*mcp.CallToolResult, flightsOutput, error) {
+		flights, err := c.AnywhereUnder(ctx, ryanair.OneWayParams{
+			Origin:   in.Origin,
+			DateFrom: in.DateFrom,
+			DateTo:   in.DateTo,
+			MaxPrice: in.MaxPrice,
+			Currency: in.Currency,
+		})
+		if err != nil {
+			return nil, flightsOutput{}, err
+		}
+		return nil, flightsOutput{Flights: flights}, nil
 	}
 }
 

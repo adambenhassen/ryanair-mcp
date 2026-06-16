@@ -106,8 +106,50 @@
         "previousPrice": null,
         "newRoute": false
       }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "Ireland",
+          "iataCode": "DUB",
+          "name": "Dublin",
+          "seoName": "dublin",
+          "city": { "code": "DUBLIN", "countryCode": "ie", "name": "Dublin" }
+        },
+        "arrivalAirport": {
+          "countryName": "Morocco",
+          "iataCode": "AGA",
+          "name": "Agadir",
+          "seoName": "agadir",
+          "city": { "code": "AGADIR", "countryCode": "ma", "name": "Agadir" }
+        },
+        "departureDate": "2026-07-12T09:00:00",
+        "arrivalDate": "2026-07-12T12:50:00",
+        "price": {
+          "value": 89.0,
+          "valueMainUnit": "89",
+          "valueFractionalUnit": "00",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~6886~ ~~DUB~07/12/2026 09:00~AGA~07/12/2026 12:50~~",
+        "flightNumber": "FR6886",
+        "previousPrice": null,
+        "priceUpdated": 1781642999000
+      },
+      "summary": {
+        "price": {
+          "value": 89.0,
+          "valueMainUnit": "89",
+          "valueFractionalUnit": "00",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": null,
+        "newRoute": false
+      }
     }
   ],
   "nextPage": 1,
-  "size": 2
+  "size": 3
 }
