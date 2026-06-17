@@ -31,6 +31,7 @@ Fare search · price calendars · timetables · the airport/route network — ov
 - [Project layout](#project-layout)
 - [Limitations](#limitations)
 - [Roadmap](#roadmap)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Features
@@ -164,6 +165,12 @@ internal/ryanair    typed client; all Ryanair wire-format quirks live here
   session/login flow and return `409` without one. Bringing these in means
   reverse-engineering and maintaining that auth flow — a larger, more fragile
   effort tracked here as future scope, not yet started.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the dev
+workflow and conventions, and [SECURITY.md](SECURITY.md) to report a
+vulnerability. Notable changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
