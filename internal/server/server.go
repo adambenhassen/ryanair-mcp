@@ -41,7 +41,12 @@ func RunStdio(ctx context.Context, srv *mcp.Server) error {
 
 // RunHTTP serves the MCP server over streamable HTTP on addr until ctx is done.
 func RunHTTP(ctx context.Context, srv *mcp.Server, addr string) error {
-	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, nil)
+	base := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return srv }, nil)
+	// The SDK stopped applying cross-origin protection by default in v1.6, so
+	// restore it with the stdlib middleware it recommends. This guards against
+	// cross-origin browser (CSRF / DNS-rebinding) requests; non-browser MCP
+	// clients, which send no Origin/Sec-Fetch-Site headers, are unaffected.
+	handler := http.NewCrossOriginProtection().Handler(base)
 	httpSrv := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
