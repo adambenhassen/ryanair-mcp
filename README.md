@@ -1,13 +1,87 @@
+<div align="center">
+
+<img src="assets/logo.svg" alt="ryanair-mcp logo" width="128" height="128">
+
 # ryanair-mcp
 
-An [MCP](https://modelcontextprotocol.io) server that exposes Ryanair's
-anonymous read APIs as tools an LLM can call: fare search, price calendars,
-timetables, and the airport/route network. Written in Go, served over **stdio**
-(default) or **streamable HTTP**.
+**An [MCP](https://modelcontextprotocol.io) server that exposes Ryanair's anonymous flight APIs as tools an LLM can call.**
 
-> Unofficial. This project consumes Ryanair's public, unauthenticated endpoints
-> and is not affiliated with or endorsed by Ryanair. The APIs are undocumented
-> and may change or rate-limit without notice.
+Fare search · price calendars · timetables · the airport/route network — over **stdio** or **streamable HTTP**.
+
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![MCP](https://img.shields.io/badge/MCP-server-6E56CF)](https://modelcontextprotocol.io)
+![Status](https://img.shields.io/badge/status-unofficial-orange)
+
+</div>
+
+> [!WARNING]
+> **Unofficial.** This project consumes Ryanair's public, unauthenticated
+> endpoints and is not affiliated with or endorsed by Ryanair. The APIs are
+> undocumented and may change or rate-limit without notice.
+
+## Contents
+
+- [Features](#features)
+- [Install](#install)
+- [Usage](#usage)
+- [Tools](#tools)
+- [How it works](#how-it-works)
+- [Development](#development)
+- [Project layout](#project-layout)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [License](#license)
+
+## Features
+
+- **16 read tools** covering Ryanair's full anonymous API surface — one-way and
+  return fares, price calendars, cheapest-weekend search, timetables, and the
+  airport/route network.
+- **Price history** — fares carry `previous_price` / `price_updated` /
+  `new_route` when Ryanair reports them, so callers can spot price drops and
+  newly-added routes.
+- **Resilient client** — session priming, User-Agent rotation, capped retries,
+  and a cached network bundle (see [How it works](#how-it-works)).
+- **Two transports** — stdio (default) for clients that spawn a subprocess, or
+  streamable HTTP.
+- **No keys, no accounts** — everything runs against public endpoints.
+
+## Install
+
+Requires Go 1.26+.
+
+```sh
+go build -o ryanair-mcp ./cmd/ryanair-mcp
+```
+
+## Usage
+
+```sh
+# stdio (default) — for MCP clients that spawn the server as a subprocess
+./ryanair-mcp
+
+# streamable HTTP
+./ryanair-mcp --transport http --addr :8080
+```
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--transport` | `stdio` | `stdio` or `http` |
+| `--addr` | `:8080` | listen address (HTTP transport only) |
+
+### With an MCP client
+
+For a stdio client (e.g. Claude Desktop), point it at the built binary:
+
+```json
+{
+  "mcpServers": {
+    "ryanair": {
+      "command": "/absolute/path/to/ryanair-mcp"
+    }
+  }
+}
+```
 
 ## Tools
 
@@ -33,52 +107,11 @@ timetables, and the airport/route network. Written in Go, served over **stdio**
 Airport inputs are IATA codes (e.g. `DUB`, `STN`). Dates are ISO `YYYY-MM-DD`.
 Currencies are ISO 4217 (e.g. `EUR`).
 
-Fare results carry price-history fields when Ryanair reports them, so callers can
-detect price drops and newly-added routes: one-way flights carry `previous_price`
-and `price_updated`; return trips carry `previous_price` and `new_route`.
+> `nearby_airports` and `default_airport` geolocate by the caller's IP. Since
+> this server makes the request, they resolve to the server's location, not the
+> end user's — useful when the server runs near the user, less so otherwise.
 
-`nearby_airports` and `default_airport` geolocate by the caller's IP. Since this
-server makes the request, they resolve to the server's location, not the end
-user's — useful when the server runs near the user, less so otherwise.
-
-## Build
-
-Requires Go 1.26+.
-
-```sh
-go build -o ryanair-mcp ./cmd/ryanair-mcp
-```
-
-## Run
-
-```sh
-# stdio (default) — for MCP clients that spawn the server as a subprocess
-./ryanair-mcp
-
-# streamable HTTP
-./ryanair-mcp --transport http --addr :8080
-```
-
-| Flag | Default | Description |
-| --- | --- | --- |
-| `--transport` | `stdio` | `stdio` or `http` |
-| `--addr` | `:8080` | listen address (HTTP transport only) |
-
-### Use with an MCP client
-
-For a stdio client (e.g. Claude Desktop), point it at the built binary:
-
-```json
-{
-  "mcpServers": {
-    "ryanair": {
-      "command": "/absolute/path/to/ryanair-mcp"
-    }
-  }
-}
-```
-
-## Behavior notes
+## How it works
 
 - **Session priming.** Cold calls to the services API sometimes return `403`, so
   the client warms a cookie jar against `www.ryanair.com` once before the first
@@ -109,7 +142,7 @@ explicitly:
 go test -tags live ./internal/ryanair/ -v
 ```
 
-### Layout
+## Project layout
 
 ```
 cmd/ryanair-mcp     entry point, flag parsing, transport selection
@@ -130,3 +163,8 @@ internal/ryanair    typed client; all Ryanair wire-format quirks live here
   session/login flow and return `409` without one. Bringing these in means
   reverse-engineering and maintaining that auth flow — a larger, more fragile
   effort tracked here as future scope, not yet started.
+
+## License
+
+No license has been set yet, so default copyright applies (all rights reserved).
+A license will be added before any public release.
