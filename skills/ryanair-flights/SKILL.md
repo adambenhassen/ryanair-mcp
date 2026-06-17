@@ -25,26 +25,6 @@ DUB→BCN?".
 - Authoritative/real-time guarantees — the upstream API is undocumented and may
   change or rate-limit; treat results as best-effort.
 
-## Setup
-
-Build the binary and register it with your MCP client.
-
-```sh
-go build -o ryanair-mcp ./cmd/ryanair-mcp
-```
-
-stdio (most clients):
-
-```json
-{
-  "mcpServers": {
-    "ryanair": { "command": "/absolute/path/to/ryanair-mcp" }
-  }
-}
-```
-
-Or streamable HTTP: `./ryanair-mcp --transport http --addr :8080`.
-
 ## Input conventions (apply to every tool)
 
 - **Airports** are IATA codes, uppercase: `DUB`, `STN`, `BCN`.
@@ -102,6 +82,17 @@ Or streamable HTTP: `./ryanair-mcp --transport http --addr :8080`.
   `get_schedules`.
 - **"What's reachable from X in Spain?"** → `explore_destinations`
   (`origin: X`, `country: es`).
+- **"Cheapest return to Y for a 3–5 night trip in August"** → `search_return`
+  (`date_from`/`date_to` for outbound, `return_from`/`return_to` for inbound,
+  trip-length bounds).
+- **"Best dates for a return to Y this month"** → `cheapest_return_per_day` for
+  an outbound + inbound price calendar side by side.
+- **"Which days is X→Y actually bookable?"** → `get_active_dates` (no prices,
+  just the dates the route is open).
+- **"What's the closest Ryanair airport to me, and where can I fly from it?"** →
+  `nearby_airports` (or `default_airport`) for the airport, then
+  `airport_destinations` for its routes — but resolve to the **server's** IP, so
+  prefer asking the user for their origin.
 
 ## Pitfalls
 
