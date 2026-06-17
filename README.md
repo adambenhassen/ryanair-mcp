@@ -109,4 +109,3 @@ internal/ryanair    typed client; all Ryanair wire-format quirks live here
 ## Limitations
 
 - Read-only. No booking or seat-availability endpoints.
-- Fare-search responses are not paginated (`nextPage` is not followed).

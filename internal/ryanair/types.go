@@ -128,6 +128,8 @@ type wireFaresResponse struct {
 			NewRoute         bool       `json:"newRoute"`
 		} `json:"summary"`
 	} `json:"fares"`
+	NextPage *int `json:"nextPage"`
+	Size     int  `json:"size"`
 }
 
 type wireDailyFare struct {

@@ -1,0 +1,49 @@
+{
+  "arrivalAirportCategories": null,
+  "fares": [
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "Ireland",
+          "iataCode": "DUB",
+          "name": "Dublin",
+          "seoName": "dublin",
+          "city": { "code": "DUBLIN", "countryCode": "ie", "name": "Dublin" }
+        },
+        "arrivalAirport": {
+          "countryName": "Spain",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": { "code": "BARCELONA", "countryCode": "es", "name": "Barcelona" }
+        },
+        "departureDate": "2026-07-26T16:55:00",
+        "arrivalDate": "2026-07-26T20:45:00",
+        "price": {
+          "value": 29.99,
+          "valueMainUnit": "29",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~1234~ ~~DUB~07/26/2026 16:55~BCN~07/26/2026 20:45~~",
+        "flightNumber": "FR1234",
+        "previousPrice": null,
+        "priceUpdated": 1781642999000
+      },
+      "summary": {
+        "price": {
+          "value": 29.99,
+          "valueMainUnit": "29",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": null,
+        "newRoute": false
+      }
+    }
+  ],
+  "nextPage": 1,
+  "size": 10
+}
