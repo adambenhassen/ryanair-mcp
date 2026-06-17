@@ -1,0 +1,8 @@
+.git
+.github
+plans
+skills
+*.md
+LICENSE
+Dockerfile
+.dockerignore

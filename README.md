@@ -86,6 +86,22 @@ For a stdio client (e.g. Claude Desktop), point it at the built binary:
 }
 ```
 
+### Docker
+
+Multi-arch images (`linux/amd64`, `linux/arm64`) are published to
+[GHCR](https://github.com/adambenhassen/ryanair-mcp/pkgs/container/ryanair-mcp)
+on every release, tagged with the version (e.g. `0.2.0`), `MAJOR.MINOR`, and
+`latest`.
+
+```sh
+# stdio (attach via -i so the client can speak over stdin/stdout)
+docker run -i --rm ghcr.io/adambenhassen/ryanair-mcp:latest
+
+# streamable HTTP
+docker run --rm -p 8080:8080 ghcr.io/adambenhassen/ryanair-mcp:latest \
+  --transport http --addr :8080
+```
+
 ## Tools
 
 | Tool | What it does | Key inputs |
