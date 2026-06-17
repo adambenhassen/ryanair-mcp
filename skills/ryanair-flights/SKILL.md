@@ -1,6 +1,7 @@
 ---
 name: ryanair-flights
 description: Use when a user wants to find or compare Ryanair flights across Europe — cheapest one-way or return fares, "anywhere under €X" discovery, price calendars, cheapest-weekend trips, published timetables, or the airport/route network. Backed by the ryanair-mcp server (16 read-only tools over Ryanair's unofficial public API). Not for booking, seat selection, or live pricing/bags.
+license: MIT
 ---
 
 # Ryanair flights (ryanair-mcp)
@@ -102,9 +103,16 @@ Or streamable HTTP: `./ryanair-mcp --transport http --addr :8080`.
 - **"What's reachable from X in Spain?"** → `explore_destinations`
   (`origin: X`, `country: es`).
 
+## Pitfalls
+
+- Empty results are valid answers (no fare/route in range), **not** errors.
+- The IP-based tools (`nearby_airports`, `default_airport`) resolve to the
+  server's location — don't treat them as the user's location.
+- This is unofficial and rate-limited; retry/backoff is built in, but expect
+  occasional gaps. No booking, seats, or bag pricing.
+
 ## Reading results
 
 Fare results carry price-history fields when Ryanair reports them
 (`previous_price`, `price_updated`, `new_route`) — useful for flagging price
-drops or newly-added routes. Empty results are valid answers (no fare/route in
-range), not errors.
+drops or newly-added routes.

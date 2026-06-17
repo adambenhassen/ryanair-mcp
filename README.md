@@ -26,6 +26,7 @@ Fare search · price calendars · timetables · the airport/route network — ov
 - [Install](#install)
 - [Usage](#usage)
 - [Tools](#tools)
+- [Agent skill](#agent-skill)
 - [How it works](#how-it-works)
 - [Development](#development)
 - [Project layout](#project-layout)
@@ -112,6 +113,14 @@ Currencies are ISO 4217 (e.g. `EUR`).
 > `nearby_airports` and `default_airport` geolocate by the caller's IP. Since
 > this server makes the request, they resolve to the server's location, not the
 > end user's — useful when the server runs near the user, less so otherwise.
+
+## Agent skill
+
+A [`SKILL.md`](skills/ryanair-flights/SKILL.md) ships under
+`skills/ryanair-flights/`, following the [Agent Skills](https://github.com/anthropics/skills)
+open standard (compatible with Claude, Hermes, Cursor, and Codex). It tells an
+agent when to reach for this server and how to drive its tools. Point your
+agent's skills directory at that folder, or copy it in.
 
 ## How it works
 
