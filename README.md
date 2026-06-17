@@ -137,8 +137,9 @@ Tests run against recorded fixtures in `internal/ryanair/testdata/` — no netwo
 access required.
 
 A build-tagged live smoke test hits the real Ryanair endpoints to catch
-wire-format or endpoint drift. It is excluded from normal builds and CI; run it
-explicitly:
+wire-format or endpoint drift. It is excluded from build/PR CI (so pull requests
+never depend on Ryanair's availability) and instead runs on a daily schedule via
+[`.github/workflows/live.yml`](.github/workflows/live.yml). Run it locally too:
 
 ```sh
 go test -tags live ./internal/ryanair/ -v

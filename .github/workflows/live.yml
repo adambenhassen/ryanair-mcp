@@ -1,0 +1,25 @@
+name: Live smoke
+
+# Runs the build-tagged live test against the real Ryanair API on a schedule to
+# catch wire-format / endpoint drift, independently of build/PR CI so it never
+# makes pull requests flaky. Also runnable on demand.
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, 06:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Live smoke test
+        run: go test -tags live -run TestLiveSmoke -v ./internal/ryanair/
