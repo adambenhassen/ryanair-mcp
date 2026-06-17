@@ -10,6 +10,7 @@ Fare search · price calendars · timetables · the airport/route network — ov
 
 [![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![MCP](https://img.shields.io/badge/MCP-server-6E56CF)](https://modelcontextprotocol.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 ![Status](https://img.shields.io/badge/status-unofficial-orange)
 
 </div>
@@ -166,5 +167,4 @@ internal/ryanair    typed client; all Ryanair wire-format quirks live here
 
 ## License
 
-No license has been set yet, so default copyright applies (all rights reserved).
-A license will be added before any public release.
+[MIT](LICENSE) © Adam Benhassen
