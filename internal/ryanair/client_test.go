@@ -2,6 +2,7 @@ package ryanair_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -689,53 +690,55 @@ func TestValidationRejectsBadInput(t *testing.T) {
 	}
 }
 
-// TestTruncatedFaresRejected guards against silent data loss: we always request
-// the full result set (no limit), so a non-null nextPage means Ryanair began
-// capping responses. Since the endpoint exposes no working cursor to fetch the
-// rest, both fare endpoints must fail loudly (returning a nil slice) rather than
-// return a partial list.
-func TestTruncatedFaresRejected(t *testing.T) {
-	cases := []struct {
-		name  string
-		route map[string]string
-		call  func(*ryanair.Client) (bool, error) // reports whether the result slice is nil
-	}{
-		{
-			name:  "one-way",
-			route: map[string]string{"/farfnd/v4/oneWayFares": "one_way_fares_truncated.json"},
-			call: func(c *ryanair.Client) (bool, error) {
-				f, err := c.OneWayFares(context.Background(), ryanair.OneWayParams{
-					Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31",
-				})
-				return f == nil, err
-			},
-		},
-		{
-			name:  "round-trip",
-			route: map[string]string{"/farfnd/v4/roundTripFares": "round_trip_fares_truncated.json"},
-			call: func(c *ryanair.Client) (bool, error) {
-				f, err := c.RoundTripFares(context.Background(), ryanair.ReturnParams{
-					OneWayParams: ryanair.OneWayParams{Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31"},
-					ReturnFrom:   "2026-08-01", ReturnTo: "2026-08-31",
-				})
-				return f == nil, err
-			},
-		},
+// TestRoundTripNotTruncated locks in that roundTripFares is exempt from the
+// oneWayFares truncation guard: the live endpoint returns nextPage=1 on every
+// (even complete) response, so the guard must NOT fire there.
+func TestRoundTripNotTruncated(t *testing.T) {
+	// Precondition: the fixture must carry a non-null nextPage to mirror the live
+	// endpoint. If this drifts, the assertion below stops proving the exemption.
+	var raw struct {
+		NextPage *int `json:"nextPage"`
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			fs := &fakeServer{}
-			client := newClient(t, routeFixtures(t, fs, tc.route))
-			gotNil, err := tc.call(client)
-			if err == nil {
-				t.Fatal("expected error for truncated (paginated) fares response")
-			}
-			if !strings.Contains(err.Error(), "truncated") {
-				t.Errorf("error = %q, want it to mention truncation", err)
-			}
-			if !gotNil {
-				t.Error("expected nil slice on truncation error")
-			}
-		})
+	if err := json.Unmarshal(fixture(t, "round_trip_fares.json"), &raw); err != nil {
+		t.Fatalf("decode fixture: %v", err)
+	}
+	if raw.NextPage == nil {
+		t.Fatal("round_trip_fares.json must keep a non-null nextPage to exercise the guard exemption")
+	}
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/farfnd/v4/roundTripFares": "round_trip_fares.json",
+	}))
+	if _, err := client.RoundTripFares(context.Background(), ryanair.ReturnParams{
+		OneWayParams: ryanair.OneWayParams{Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-15"},
+		ReturnFrom:   "2026-07-08", ReturnTo: "2026-07-22",
+	}); err != nil {
+		t.Fatalf("RoundTripFares must not error on a nextPage:1 (complete) response: %v", err)
+	}
+}
+
+// TestTruncatedFaresRejected guards oneWayFares against silent data loss: we
+// always request the full result set (no limit), so a non-null nextPage means
+// Ryanair began capping responses. Since the endpoint exposes no working cursor
+// to fetch the rest, OneWayFares must fail loudly (returning a nil slice) rather
+// than return a partial list. (roundTripFares is intentionally not guarded — it
+// returns nextPage=1 on every response, so it has no usable truncation signal;
+// TestRoundTripNotTruncated covers that its nextPage=1 fixture does NOT error.)
+func TestTruncatedFaresRejected(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/farfnd/v4/oneWayFares": "one_way_fares_truncated.json",
+	}))
+	flights, err := client.OneWayFares(context.Background(), ryanair.OneWayParams{
+		Origin: "DUB", DateFrom: "2026-07-01", DateTo: "2026-07-31",
+	})
+	if err == nil {
+		t.Fatal("expected error for truncated (paginated) fares response")
+	}
+	if !strings.Contains(err.Error(), "truncated") {
+		t.Errorf("error = %q, want it to mention truncation", err)
+	}
+	if flights != nil {
+		t.Error("expected nil slice on truncation error")
 	}
 }

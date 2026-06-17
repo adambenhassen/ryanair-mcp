@@ -148,9 +148,9 @@ func (c *Client) RoundTripFares(ctx context.Context, params ReturnParams) ([]Ret
 	if err := getJSON(ctx, c, endpoint, servicesHost+"/"+endpoint, q, &resp); err != nil {
 		return nil, err
 	}
-	if err := resp.checkComplete(); err != nil {
-		return nil, err
-	}
+	// NOTE: no checkComplete() here. Unlike oneWayFares, roundTripFares returns
+	// nextPage=1 on every response — even a complete one (verified live: 98 of
+	// 98 with nextPage=1) — so it carries no usable truncation signal to guard on.
 	trips := make([]ReturnFlight, 0, len(resp.Fares))
 	for _, f := range resp.Fares {
 		outbound, err := legToFlight(f.Outbound)
@@ -201,12 +201,15 @@ func (c *Client) CheapestPerDay(ctx context.Context, origin, dest, month, curren
 	return dailyFares(resp.Outbound.Fares), nil
 }
 
-// checkComplete guards against silently returning a partial fare list. We never
-// send a limit, so these endpoints return the full result set in one response
-// and nextPage stays null. A non-null nextPage means Ryanair began capping
-// responses; the endpoint exposes no working cursor (offset and page params are
-// ignored — verified against the live API as of 2026-06) to fetch the rest, so
-// we surface a loud error instead of truncating.
+// checkComplete guards oneWayFares against silently returning a partial fare
+// list. We never send a limit, so oneWayFares returns the full result set in one
+// response and nextPage stays null. A non-null nextPage means Ryanair began
+// capping responses; the endpoint exposes no working cursor (offset and page
+// params are ignored — verified against the live API as of 2026-06) to fetch the
+// rest, so we surface a loud error instead of truncating.
+//
+// This applies to oneWayFares only. roundTripFares returns nextPage=1 on every
+// response, complete or not, so it has no usable truncation signal to guard on.
 func (r wireFaresResponse) checkComplete() error {
 	if r.NextPage != nil {
 		return fmt.Errorf("ryanair: fares response truncated (nextPage=%d, returned %d of %d); endpoint started paginating with no fetchable cursor", *r.NextPage, len(r.Fares), r.Size)
