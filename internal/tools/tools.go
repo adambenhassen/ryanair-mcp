@@ -34,6 +34,21 @@ func Register(server *mcp.Server, client *ryanair.Client) {
 	}, cheapestPerDay(client))
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        "cheapest_return_per_day",
+		Description: "Get the cheapest return fare per day on a route, with outbound and inbound price calendars side by side and optional trip-duration limits.",
+	}, cheapestReturnPerDay(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "cheapest_weekend",
+		Description: "Find the cheapest Friday-to-Sunday (or Friday-to-Monday) return weekend on a route over the next few months. Returns the outbound/inbound pair and total price.",
+	}, cheapestWeekend(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "get_active_dates",
+		Description: "List the dates a route is currently bookable (ISO YYYY-MM-DD, no prices). Useful for checking which days a route operates.",
+	}, getActiveDates(client))
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_schedules",
 		Description: "Get the published timetable (days and times a route runs, no prices) for a month.",
 	}, getSchedules(client))
@@ -173,6 +188,81 @@ func cheapestPerDay(c *ryanair.Client) mcp.ToolHandlerFor[calendarInput, calenda
 			return nil, calendarOutput{}, err
 		}
 		return nil, calendarOutput{Days: days}, nil
+	}
+}
+
+// --- cheapest_return_per_day ---
+
+type returnCalendarInput struct {
+	Origin        string `json:"origin"                  jsonschema:"departure airport IATA code"`
+	Destination   string `json:"destination"             jsonschema:"arrival airport IATA code"`
+	OutboundMonth string `json:"outbound_month"          jsonschema:"first day of the outbound month, ISO YYYY-MM-01"`
+	InboundMonth  string `json:"inbound_month,omitempty" jsonschema:"first day of the inbound month, ISO YYYY-MM-01 (defaults to outbound month)"`
+	MinTripDays   int    `json:"min_trip_days,omitempty" jsonschema:"optional minimum trip length in days"`
+	MaxTripDays   int    `json:"max_trip_days,omitempty" jsonschema:"optional maximum trip length in days"`
+	Currency      string `json:"currency,omitempty"      jsonschema:"optional ISO 4217 currency"`
+}
+
+func cheapestReturnPerDay(c *ryanair.Client) mcp.ToolHandlerFor[returnCalendarInput, ryanair.ReturnDailyFares] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in returnCalendarInput) (*mcp.CallToolResult, ryanair.ReturnDailyFares, error) {
+		res, err := c.CheapestReturnPerDay(ctx, in.Origin, in.Destination, in.OutboundMonth, in.InboundMonth, in.MinTripDays, in.MaxTripDays, in.Currency)
+		if err != nil {
+			return nil, ryanair.ReturnDailyFares{}, err
+		}
+		return nil, res, nil
+	}
+}
+
+// --- cheapest_weekend ---
+
+type weekendInput struct {
+	Origin        string `json:"origin"                   jsonschema:"departure airport IATA code"`
+	Destination   string `json:"destination"              jsonschema:"arrival airport IATA code"`
+	MonthsAhead   int    `json:"months_ahead,omitempty"   jsonschema:"how many months ahead to search (default 3)"`
+	WeekendLength int    `json:"weekend_length,omitempty" jsonschema:"2 for Fri-Sun or 3 for Fri-Mon (default 2)"`
+}
+
+type weekendOutput struct {
+	Found bool                 `json:"found"`
+	Trip  *ryanair.WeekendTrip `json:"trip,omitempty"`
+}
+
+func cheapestWeekend(c *ryanair.Client) mcp.ToolHandlerFor[weekendInput, weekendOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in weekendInput) (*mcp.CallToolResult, weekendOutput, error) {
+		monthsAhead := in.MonthsAhead
+		if monthsAhead == 0 {
+			monthsAhead = 3
+		}
+		weekendLength := in.WeekendLength
+		if weekendLength == 0 {
+			weekendLength = 2
+		}
+		trip, err := c.CheapestWeekend(ctx, in.Origin, in.Destination, monthsAhead, weekendLength)
+		if err != nil {
+			return nil, weekendOutput{}, err
+		}
+		return nil, weekendOutput{Found: trip != nil, Trip: trip}, nil
+	}
+}
+
+// --- get_active_dates ---
+
+type activeDatesInput struct {
+	Origin      string `json:"origin"      jsonschema:"departure airport IATA code"`
+	Destination string `json:"destination" jsonschema:"arrival airport IATA code"`
+}
+
+type activeDatesOutput struct {
+	Dates []string `json:"dates"`
+}
+
+func getActiveDates(c *ryanair.Client) mcp.ToolHandlerFor[activeDatesInput, activeDatesOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in activeDatesInput) (*mcp.CallToolResult, activeDatesOutput, error) {
+		dates, err := c.RouteActiveDates(ctx, in.Origin, in.Destination)
+		if err != nil {
+			return nil, activeDatesOutput{}, err
+		}
+		return nil, activeDatesOutput{Dates: dates}, nil
 	}
 }
 

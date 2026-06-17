@@ -1,0 +1,62 @@
+{
+  "outbound": {
+    "minFare": null,
+    "maxFare": null,
+    "fares": [
+      {
+        "day": "2026-07-03",
+        "departureDate": "2026-07-03T21:00:00",
+        "arrivalDate": "2026-07-03T22:20:00",
+        "price": { "value": 20.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-04",
+        "departureDate": "2026-07-04T21:00:00",
+        "arrivalDate": "2026-07-04T22:20:00",
+        "price": { "value": 99.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-10",
+        "departureDate": "2026-07-10T21:00:00",
+        "arrivalDate": "2026-07-10T22:20:00",
+        "price": { "value": 15.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      }
+    ]
+  },
+  "inbound": {
+    "minFare": null,
+    "maxFare": null,
+    "fares": [
+      {
+        "day": "2026-07-05",
+        "departureDate": "2026-07-05T22:45:00",
+        "arrivalDate": "2026-07-06T00:05:00",
+        "price": { "value": 25.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-06",
+        "departureDate": "2026-07-06T22:45:00",
+        "arrivalDate": "2026-07-07T00:05:00",
+        "price": { "value": 30.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      },
+      {
+        "day": "2026-07-12",
+        "departureDate": "2026-07-12T22:45:00",
+        "arrivalDate": "2026-07-13T00:05:00",
+        "price": { "value": 18.00, "currencyCode": "EUR" },
+        "soldOut": false,
+        "unavailable": false
+      }
+    ]
+  }
+}

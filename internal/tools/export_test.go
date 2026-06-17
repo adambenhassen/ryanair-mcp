@@ -40,6 +40,32 @@ func RunExplore(c *ryanair.Client, in ExploreArgs) (ExploreResult, error) {
 	return ExploreResult(out), err
 }
 
+// RunActiveDates invokes the get_active_dates handler end-to-end.
+func RunActiveDates(c *ryanair.Client, origin, dest string) ([]string, error) {
+	h := getActiveDates(c)
+	_, out, err := h(context.Background(), nil, activeDatesInput{Origin: origin, Destination: dest})
+	return out.Dates, err
+}
+
+// RunCheapestReturnPerDay invokes the cheapest_return_per_day handler end-to-end.
+func RunCheapestReturnPerDay(c *ryanair.Client, origin, dest, outMonth, inMonth string, minDur, maxDur int, currency string) ([]ryanair.DailyFare, []ryanair.DailyFare, error) {
+	h := cheapestReturnPerDay(c)
+	_, out, err := h(context.Background(), nil, returnCalendarInput{
+		Origin: origin, Destination: dest, OutboundMonth: outMonth, InboundMonth: inMonth,
+		MinTripDays: minDur, MaxTripDays: maxDur, Currency: currency,
+	})
+	return out.Outbound, out.Inbound, err
+}
+
+// RunCheapestWeekend invokes the cheapest_weekend handler end-to-end.
+func RunCheapestWeekend(c *ryanair.Client, origin, dest string, monthsAhead, weekendLength int) (*ryanair.WeekendTrip, error) {
+	h := cheapestWeekend(c)
+	_, out, err := h(context.Background(), nil, weekendInput{
+		Origin: origin, Destination: dest, MonthsAhead: monthsAhead, WeekendLength: weekendLength,
+	})
+	return out.Trip, err
+}
+
 // RunAnywhereUnder invokes the find_anywhere_under handler end-to-end.
 func RunAnywhereUnder(c *ryanair.Client, origin, from, to string, maxPrice int) ([]ryanair.Flight, error) {
 	h := findAnywhereUnder(c)

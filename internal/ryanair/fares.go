@@ -217,6 +217,128 @@ func (r wireFaresResponse) checkComplete() error {
 	return nil
 }
 
+// RouteActiveDates returns the dates a route is currently bookable (ISO
+// YYYY-MM-DD strings, no price info). It is a very cheap lookup.
+func (c *Client) RouteActiveDates(ctx context.Context, origin, dest string) ([]string, error) {
+	o, d := normIATA(origin), normIATA(dest)
+	if !validIATA(o) || !validIATA(d) {
+		return nil, fmt.Errorf("invalid route %q-%q", origin, dest)
+	}
+	endpoint := fmt.Sprintf("farfnd/v4/oneWayFares/%s/%s/availabilities", o, d)
+	var dates []string
+	if err := getJSON(ctx, c, endpoint, servicesHost+"/"+endpoint, nil, &dates); err != nil {
+		return nil, err
+	}
+	return dates, nil
+}
+
+// CheapestReturnPerDay returns the per-day cheapest fares for a return trip
+// across the outbound and inbound months (outbound and inbound calendars side
+// by side). inboundMonth defaults to outboundMonth when empty. minDuration and
+// maxDuration constrain trip length in days (0 = omit). Months must be the first
+// day of the month (ISO date).
+func (c *Client) CheapestReturnPerDay(ctx context.Context, origin, dest, outboundMonth, inboundMonth string, minDuration, maxDuration int, currency string) (ReturnDailyFares, error) {
+	o, d := normIATA(origin), normIATA(dest)
+	if !validIATA(o) || !validIATA(d) {
+		return ReturnDailyFares{}, fmt.Errorf("invalid route %q-%q", origin, dest)
+	}
+	if _, err := time.Parse(dateLayout, outboundMonth); err != nil {
+		return ReturnDailyFares{}, fmt.Errorf("invalid outbound month %q: %w", outboundMonth, err)
+	}
+	if inboundMonth == "" {
+		inboundMonth = outboundMonth
+	} else if _, err := time.Parse(dateLayout, inboundMonth); err != nil {
+		return ReturnDailyFares{}, fmt.Errorf("invalid inbound month %q: %w", inboundMonth, err)
+	}
+	q := url.Values{}
+	q.Set("outboundMonthOfDate", outboundMonth)
+	q.Set("inboundMonthOfDate", inboundMonth)
+	if minDuration > 0 {
+		q.Set("durationFrom", itoa(minDuration))
+	}
+	if maxDuration > 0 {
+		q.Set("durationTo", itoa(maxDuration))
+	}
+	if currency != "" {
+		q.Set("currency", currency)
+	}
+	endpoint := fmt.Sprintf("farfnd/v4/roundTripFares/%s/%s/cheapestPerDay", o, d)
+	var resp wireCalendarResponse
+	if err := getJSON(ctx, c, endpoint, servicesHost+"/"+endpoint, q, &resp); err != nil {
+		return ReturnDailyFares{}, err
+	}
+	return ReturnDailyFares{
+		Outbound: dailyFares(resp.Outbound.Fares),
+		Inbound:  dailyFares(resp.Inbound.Fares),
+	}, nil
+}
+
+// CheapestWeekend finds the cheapest Friday->Sunday (weekendLength 2) or
+// Friday->Monday (weekendLength 3) return trip over the next monthsAhead months.
+// It returns nil when no priced weekend exists in the window.
+func (c *Client) CheapestWeekend(ctx context.Context, origin, dest string, monthsAhead, weekendLength int) (*WeekendTrip, error) {
+	if weekendLength != 2 && weekendLength != 3 {
+		return nil, fmt.Errorf("weekend length must be 2 (Fri-Sun) or 3 (Fri-Mon), got %d", weekendLength)
+	}
+	if monthsAhead < 1 {
+		return nil, fmt.Errorf("months ahead must be >= 1, got %d", monthsAhead)
+	}
+	now := time.Now()
+	end := now.AddDate(0, monthsAhead, 0)
+	var outbounds, inbounds []DailyFare
+	for m := firstOfMonth(now); !m.After(end); m = m.AddDate(0, 1, 0) {
+		month := m.Format(dateLayout)
+		fares, err := c.CheapestReturnPerDay(ctx, origin, dest, month, month, weekendLength, weekendLength, "")
+		if err != nil {
+			return nil, err
+		}
+		outbounds = append(outbounds, fares.Outbound...)
+		inbounds = append(inbounds, fares.Inbound...)
+	}
+	return cheapestWeekendTrip(outbounds, inbounds, weekendLength)
+}
+
+// cheapestWeekendTrip pairs each priced Friday outbound with the inbound
+// weekendLength days later and returns the cheapest combined pair, or nil.
+func cheapestWeekendTrip(outbounds, inbounds []DailyFare, weekendLength int) (*WeekendTrip, error) {
+	inboundByDay := make(map[string]DailyFare, len(inbounds))
+	for _, in := range inbounds {
+		if in.Price != nil {
+			inboundByDay[in.Day] = in
+		}
+	}
+	var best *WeekendTrip
+	for _, out := range outbounds {
+		if out.Price == nil {
+			continue
+		}
+		day, err := time.Parse(dateLayout, out.Day)
+		if err != nil {
+			return nil, fmt.Errorf("ryanair: parse weekend day %q: %w", out.Day, err)
+		}
+		if day.Weekday() != time.Friday {
+			continue
+		}
+		retDay := day.AddDate(0, 0, weekendLength).Format(dateLayout)
+		in, ok := inboundByDay[retDay]
+		if !ok {
+			continue
+		}
+		total := *out.Price + *in.Price
+		if best == nil || total < best.TotalPrice {
+			// Both legs come from one cheapestPerDay response priced in a single
+			// currency, so the outbound's currency represents the whole trip.
+			best = &WeekendTrip{Outbound: out, Inbound: in, TotalPrice: total, Currency: out.Currency}
+		}
+	}
+	return best, nil
+}
+
+// firstOfMonth returns midnight on the first day of t's month.
+func firstOfMonth(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
+}
+
 func legToFlight(leg wireLeg) (Flight, error) {
 	dep, err := parseTime(leg.DepartureDate)
 	if err != nil {

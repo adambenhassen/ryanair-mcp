@@ -98,6 +98,41 @@ func TestLiveSmoke(t *testing.T) {
 		}
 	})
 
+	t.Run("RouteActiveDates", func(t *testing.T) {
+		dates, err := client.RouteActiveDates(liveCtx(t), liveOrigin, liveDest)
+		if err != nil {
+			t.Fatalf("RouteActiveDates: %v", err)
+		}
+		t.Logf("active dates for %s-%s: %d", liveOrigin, liveDest, len(dates))
+		if len(dates) == 0 {
+			t.Fatal("expected active dates (possible endpoint drift)")
+		}
+	})
+
+	t.Run("CheapestReturnPerDay", func(t *testing.T) {
+		res, err := client.CheapestReturnPerDay(liveCtx(t), liveOrigin, liveDest, monthStr, monthStr, 2, 7, "")
+		if err != nil {
+			t.Fatalf("CheapestReturnPerDay: %v", err)
+		}
+		t.Logf("return calendar %s-%s: out=%d in=%d", liveOrigin, liveDest, len(res.Outbound), len(res.Inbound))
+		if len(res.Outbound) == 0 || len(res.Inbound) == 0 {
+			t.Fatal("expected outbound and inbound days (possible endpoint drift)")
+		}
+	})
+
+	t.Run("CheapestWeekend", func(t *testing.T) {
+		// May legitimately be nil if no priced weekend exists; we only assert the
+		// multi-month composition runs without error against the live endpoint.
+		trip, err := client.CheapestWeekend(liveCtx(t), liveOrigin, liveDest, 2, 2)
+		if err != nil {
+			t.Fatalf("CheapestWeekend: %v", err)
+		}
+		if trip != nil {
+			t.Logf("cheapest weekend %s-%s: %s -> %s total %.2f",
+				liveOrigin, liveDest, trip.Outbound.Day, trip.Inbound.Day, trip.TotalPrice)
+		}
+	})
+
 	t.Run("Schedules", func(t *testing.T) {
 		flights, err := client.Schedules(liveCtx(t), liveOrigin, liveDest, month.Year(), int(month.Month()))
 		if err != nil {

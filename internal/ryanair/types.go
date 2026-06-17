@@ -59,6 +59,22 @@ type DailyFare struct {
 	Unavailable   bool       `json:"unavailable"`
 }
 
+// ReturnDailyFares is the per-day cheapest fare calendar for a return trip,
+// with the outbound and inbound sides side by side.
+type ReturnDailyFares struct {
+	Outbound []DailyFare `json:"outbound"`
+	Inbound  []DailyFare `json:"inbound"`
+}
+
+// WeekendTrip is the cheapest matched Friday-departure outbound paired with its
+// return inbound, with the combined price.
+type WeekendTrip struct {
+	Outbound   DailyFare `json:"outbound"`
+	Inbound    DailyFare `json:"inbound"`
+	TotalPrice float64   `json:"total_price"`
+	Currency   string    `json:"currency"`
+}
+
 // TimetableFlight is one scheduled service on a route (no price).
 type TimetableFlight struct {
 	Day           int    `json:"day"`

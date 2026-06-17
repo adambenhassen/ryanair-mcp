@@ -45,6 +45,10 @@ func exploreClient(t *testing.T) *ryanair.Client {
 			w.WriteHeader(http.StatusOK)
 		case strings.HasPrefix(r.URL.Path, "/api/views/locate/3/aggregate/all/en"):
 			serve(w, "network.json")
+		case strings.HasSuffix(r.URL.Path, "/availabilities"):
+			serve(w, "availabilities.json")
+		case strings.Contains(r.URL.Path, "/roundTripFares/") && strings.HasSuffix(r.URL.Path, "/cheapestPerDay"):
+			serve(w, "return_cheapest_per_day.json")
 		case strings.HasPrefix(r.URL.Path, "/farfnd/v4/oneWayFares"):
 			serve(w, "one_way_fares.json")
 		default:
@@ -123,6 +127,43 @@ func TestAnywhereHandler(t *testing.T) {
 	}
 	if _, err := tools.RunAnywhereUnder(c, "DUB", "2026-07-01", "2026-07-31", 0); err == nil {
 		t.Error("expected error for max_price = 0")
+	}
+}
+
+func TestActiveDatesHandler(t *testing.T) {
+	c := exploreClient(t)
+	dates, err := tools.RunActiveDates(c, "DUB", "STN")
+	if err != nil {
+		t.Fatalf("active dates: %v", err)
+	}
+	if len(dates) != 3 || dates[0] != "2026-07-01" {
+		t.Errorf("dates = %v, want 3 starting 2026-07-01", dates)
+	}
+}
+
+func TestCheapestReturnPerDayHandler(t *testing.T) {
+	c := exploreClient(t)
+	out, in, err := tools.RunCheapestReturnPerDay(c, "DUB", "STN", "2026-07-01", "", 2, 3, "EUR")
+	if err != nil {
+		t.Fatalf("return cpd: %v", err)
+	}
+	if len(out) != 3 || len(in) != 3 {
+		t.Errorf("out=%d in=%d, want 3/3", len(out), len(in))
+	}
+}
+
+func TestCheapestWeekendHandler(t *testing.T) {
+	c := exploreClient(t)
+	trip, err := tools.RunCheapestWeekend(c, "DUB", "STN", 1, 2)
+	if err != nil {
+		t.Fatalf("weekend: %v", err)
+	}
+	if trip == nil || trip.TotalPrice != 33.00 {
+		t.Errorf("trip = %+v, want total 33.00", trip)
+	}
+	// Omitted weekend_length (0) must default to a valid value (Fri->Sun).
+	if _, err := tools.RunCheapestWeekend(c, "DUB", "STN", 1, 0); err != nil {
+		t.Errorf("default weekend_length: %v", err)
 	}
 }
 

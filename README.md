@@ -17,6 +17,9 @@ timetables, and the airport/route network. Written in Go, served over **stdio**
 | `search_return` | Cheapest return fares across outbound and inbound windows, with optional trip-length bounds. | `origin`, `date_from`, `date_to`, `return_from`, `return_to`, *(opt)* `min_trip_days`, `max_trip_days`, … |
 | `find_anywhere_under` | Cheapest one-way fare to each reachable destination from an origin under a price cap, in a date window — returns a list of flights, one per destination, sorted by price. | `origin`, `date_from`, `date_to`, `max_price`, *(opt)* `currency` |
 | `cheapest_per_day` | Cheapest one-way fare per day of a month on a route (price calendar). | `origin`, `destination`, `month` (`YYYY-MM-01`), *(opt)* `currency` |
+| `cheapest_return_per_day` | Cheapest return fare per day on a route, outbound and inbound calendars side by side. | `origin`, `destination`, `outbound_month` (`YYYY-MM-01`), *(opt)* `inbound_month`, `min_trip_days`, `max_trip_days`, `currency` |
+| `cheapest_weekend` | Cheapest Fri→Sun (or Fri→Mon) return weekend on a route over the next few months. | `origin`, `destination`, *(opt)* `months_ahead` (default 3), `weekend_length` (`2`\|`3`, default 2) |
+| `get_active_dates` | Dates a route is currently bookable (ISO dates, no prices). | `origin`, `destination` |
 | `get_schedules` | Published timetable (days/times a route runs, no prices) for a month. | `origin`, `destination`, `year`, `month` |
 | `list_airports` | List Ryanair airports, optionally filtered by country. | *(opt)* `country` (ISO-3166 alpha-2) |
 | `validate_route` | Whether Ryanair flies a direct route between two airports. | `origin`, `destination` |
