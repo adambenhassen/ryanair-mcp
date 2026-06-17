@@ -1,0 +1,26 @@
+[
+  {
+    "code": "DUB",
+    "name": "Dublin",
+    "seoName": "dublin",
+    "aliases": ["Dublin"],
+    "base": true,
+    "city": { "name": "Dublin", "code": "DUBLIN" },
+    "region": { "name": "Leinster", "code": "LEINSTER" },
+    "country": { "code": "ie", "iso3code": "IRL", "name": "Ireland", "currency": "EUR", "defaultAirportCode": "DUB", "schengen": false },
+    "coordinates": { "latitude": 53.4213, "longitude": -6.27007 },
+    "timeZone": "Europe/Dublin"
+  },
+  {
+    "code": "STN",
+    "name": "London Stansted",
+    "seoName": "london-stansted",
+    "aliases": ["London"],
+    "base": true,
+    "city": { "name": "London", "code": "STANSTED" },
+    "region": { "name": "Greater London", "code": "GREATER_LONDON" },
+    "country": { "code": "gb", "iso3code": "GBR", "name": "United Kingdom", "currency": "GBP", "defaultAirportCode": "STN", "schengen": false },
+    "coordinates": { "latitude": 51.885, "longitude": 0.235 },
+    "timeZone": "Europe/London"
+  }
+]

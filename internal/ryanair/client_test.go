@@ -939,3 +939,134 @@ func TestTruncatedFaresRejected(t *testing.T) {
 		t.Error("expected nil slice on truncation error")
 	}
 }
+
+func TestActiveAirports(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{
+		"/api/views/locate/5/airports/en/active": "active_airports.json",
+	}))
+	airports, err := client.ActiveAirports(context.Background())
+	if err != nil {
+		t.Fatalf("ActiveAirports: %v", err)
+	}
+	if len(airports) != 2 {
+		t.Fatalf("airports = %d, want 2", len(airports))
+	}
+	dub := airports[0]
+	if dub.IataCode != "DUB" || dub.RegionName != "Leinster" || dub.CurrencyCode != "EUR" || dub.TimeZone != "Europe/Dublin" {
+		t.Errorf("unexpected airport %+v", dub)
+	}
+	if !dub.Base {
+		t.Error("DUB should be a base")
+	}
+}
+
+func TestAirportInfo(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{
+		"/api/views/locate/5/airports/en/DUB": "airport_info.json",
+	}))
+	a, err := client.AirportInfo(context.Background(), "dub")
+	if err != nil {
+		t.Fatalf("AirportInfo: %v", err)
+	}
+	if a.IataCode != "DUB" || a.CountryName != "Ireland" || a.CityCode != "DUBLIN" || a.RegionCode != "LEINSTER" {
+		t.Errorf("unexpected airport %+v", a)
+	}
+}
+
+func TestAirportInfoRejectsBadIATA(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{}))
+	if _, err := client.AirportInfo(context.Background(), "XX"); err == nil {
+		t.Fatal("expected error for invalid IATA")
+	}
+}
+
+func TestAirportDestinations(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{
+		"/api/views/locate/searchWidget/routes/en/airport/DUB": "airport_destinations.json",
+	}))
+	dests, err := client.AirportDestinations(context.Background(), "DUB")
+	if err != nil {
+		t.Fatalf("AirportDestinations: %v", err)
+	}
+	if len(dests) != 2 {
+		t.Fatalf("dests = %d, want 2", len(dests))
+	}
+	if dests[0].IataCode != "ACE" || dests[0].Operator != "FR" || dests[0].Seasonal {
+		t.Errorf("unexpected first dest %+v", dests[0])
+	}
+	agp := dests[1]
+	if !agp.Seasonal || !agp.Recent || len(agp.Tags) != 1 || agp.Tags[0] != "popular" {
+		t.Errorf("unexpected malaga dest %+v", agp)
+	}
+}
+
+func TestNearbyAirports(t *testing.T) {
+	fs := &fakeServer{}
+	client := newClient(t, routeFixtures(t, fs, map[string]string{
+		"/api/geoloc/v5/nearbyAirports": "nearby_airports.json",
+	}))
+	airports, err := client.NearbyAirports(context.Background(), "")
+	if err != nil {
+		t.Fatalf("NearbyAirports: %v", err)
+	}
+	if len(airports) != 2 {
+		t.Fatalf("airports = %d, want 2", len(airports))
+	}
+	stn := airports[0]
+	if stn.IataCode != "STN" || stn.CountryCode != "gb" || stn.CityName != "London" {
+		t.Errorf("unexpected airport %+v", stn)
+	}
+	// Lean geoloc shape: region/timezone/currency/base are absent and must map
+	// to zero values, not be fabricated.
+	if stn.RegionName != "" || stn.TimeZone != "" || stn.CurrencyCode != "" || stn.Base {
+		t.Errorf("geoloc airport should have empty region/timezone/currency/base, got %+v", stn)
+	}
+	if q := fs.lastQuery.Load(); q == nil || q.Get("market") != "en-gb" {
+		t.Errorf("market query = %v, want en-gb default", q)
+	}
+
+	// An explicit market must be forwarded, not overwritten by the default.
+	if _, err := client.NearbyAirports(context.Background(), "fr-fr"); err != nil {
+		t.Fatalf("NearbyAirports(fr-fr): %v", err)
+	}
+	if q := fs.lastQuery.Load(); q == nil || q.Get("market") != "fr-fr" {
+		t.Errorf("market query = %v, want fr-fr", q)
+	}
+}
+
+func TestDefaultAirport(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{
+		"/api/geoloc/v5/defaultAirport": "default_airport.json",
+	}))
+	a, err := client.DefaultAirport(context.Background())
+	if err != nil {
+		t.Fatalf("DefaultAirport: %v", err)
+	}
+	if a.IataCode != "DUB" || a.CountryName != "Ireland" || a.CityCode != "DUBLIN" || a.Latitude == 0 {
+		t.Errorf("unexpected airport %+v", a)
+	}
+	// Lean geoloc shape: these fields are absent upstream and must map to zero.
+	if a.RegionName != "" || a.TimeZone != "" || a.CurrencyCode != "" || a.Base {
+		t.Errorf("geoloc airport should have empty region/timezone/currency/base, got %+v", a)
+	}
+}
+
+func TestActiveAirportsNetworkError(t *testing.T) {
+	client := newClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	if _, err := client.ActiveAirports(context.Background()); err == nil {
+		t.Fatal("expected error when the endpoint returns 500")
+	}
+}
+
+func TestAirportDestinationsRejectsBadIATA(t *testing.T) {
+	client := newClient(t, routeFixtures(t, &fakeServer{}, map[string]string{}))
+	if _, err := client.AirportDestinations(context.Background(), "XX"); err == nil {
+		t.Fatal("expected error for invalid origin IATA")
+	}
+}

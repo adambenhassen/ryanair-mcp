@@ -24,6 +24,11 @@ timetables, and the airport/route network. Written in Go, served over **stdio**
 | `list_airports` | List Ryanair airports, optionally filtered by country. | *(opt)* `country` (ISO-3166 alpha-2) |
 | `validate_route` | Whether Ryanair flies a direct route between two airports. | `origin`, `destination` |
 | `explore_destinations` | Airports reachable from an origin (each flagged `seasonal` and carrying region/country metadata), optionally annotated with cheapest fares, filtered, and grouped. | `origin`, *(opt)* `with_fares`, `date_from`, `date_to`, `currency`, `country`, `region`, `city`, `group_by` (`country`\|`region`) |
+| `active_airports` | Every airport Ryanair currently flies, with full location metadata, in one call. | *(none)* |
+| `airport_info` | Metadata for a single airport (city, region, country, timezone, coordinates). | `code` (IATA) |
+| `airport_destinations` | Destinations reachable from an origin, each carrying `operator`, `seasonal`, `recent`, and `tags` metadata. | `origin` |
+| `nearby_airports` | Airports near the server's IP-derived location. | *(opt)* `market` (IETF locale) |
+| `default_airport` | Closest airport to the server's IP-derived location. | *(none)* |
 
 Airport inputs are IATA codes (e.g. `DUB`, `STN`). Dates are ISO `YYYY-MM-DD`.
 Currencies are ISO 4217 (e.g. `EUR`).
@@ -31,6 +36,10 @@ Currencies are ISO 4217 (e.g. `EUR`).
 Fare results carry price-history fields when Ryanair reports them, so callers can
 detect price drops and newly-added routes: one-way flights carry `previous_price`
 and `price_updated`; return trips carry `previous_price` and `new_route`.
+
+`nearby_airports` and `default_airport` geolocate by the caller's IP. Since this
+server makes the request, they resolve to the server's location, not the end
+user's — useful when the server runs near the user, less so otherwise.
 
 ## Build
 
@@ -112,3 +121,12 @@ internal/ryanair    typed client; all Ryanair wire-format quirks live here
 ## Limitations
 
 - Read-only. No booking or seat-availability endpoints.
+
+## Roadmap
+
+- **Session-based (authenticated) endpoints.** Today we cover only Ryanair's
+  public, unauthenticated read surface. Booking flows, seat availability/seat
+  maps, and live pricing sessions (bags, fare classes) sit behind Ryanair's
+  session/login flow and return `409` without one. Bringing these in means
+  reverse-engineering and maintaining that auth flow — a larger, more fragile
+  effort tracked here as future scope, not yet started.

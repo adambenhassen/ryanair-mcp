@@ -1,0 +1,38 @@
+[
+  {
+    "arrivalAirport": {
+      "code": "ACE",
+      "name": "Lanzarote",
+      "seoName": "lanzarote",
+      "aliases": [],
+      "base": true,
+      "city": { "name": "Lanzarote", "code": "LANZAROTE" },
+      "region": { "name": "Canary Isles", "code": "CANARY_ISLES" },
+      "country": { "code": "es", "iso3code": "ESP", "name": "Spain", "currency": "EUR", "defaultAirportCode": "BCN", "schengen": true },
+      "coordinates": { "latitude": 28.9455, "longitude": -13.6052 },
+      "timeZone": "Atlantic/Canary"
+    },
+    "recent": false,
+    "seasonal": false,
+    "operator": "FR",
+    "tags": []
+  },
+  {
+    "arrivalAirport": {
+      "code": "AGP",
+      "name": "Malaga",
+      "seoName": "malaga",
+      "aliases": [],
+      "base": false,
+      "city": { "name": "Malaga", "code": "MALAGA" },
+      "region": { "name": "Costa del Sol", "code": "COSTA_DEL_SOL" },
+      "country": { "code": "es", "iso3code": "ESP", "name": "Spain", "currency": "EUR", "defaultAirportCode": "BCN", "schengen": true },
+      "coordinates": { "latitude": 36.6749, "longitude": -4.49911 },
+      "timeZone": "Europe/Madrid"
+    },
+    "recent": true,
+    "seasonal": true,
+    "operator": "FR",
+    "tags": ["popular"]
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "code": "DUB",
+  "name": "Dublin",
+  "aliases": [],
+  "city": { "name": "Dublin", "code": "DUBLIN" },
+  "country": { "code": "ie", "name": "Ireland" },
+  "coordinates": { "latitude": 53.4213, "longitude": -6.27007 }
+}

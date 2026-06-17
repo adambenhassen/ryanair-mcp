@@ -1,0 +1,18 @@
+[
+  {
+    "code": "STN",
+    "name": "London Stansted",
+    "aliases": ["London"],
+    "city": { "name": "London", "code": "STANSTED" },
+    "country": { "code": "gb", "name": "United Kingdom" },
+    "coordinates": { "latitude": 51.885, "longitude": 0.235 }
+  },
+  {
+    "code": "LTN",
+    "name": "London Luton",
+    "aliases": [],
+    "city": { "name": "London", "code": "LONDON" },
+    "country": { "code": "gb", "name": "United Kingdom" },
+    "coordinates": { "latitude": 51.8747, "longitude": -0.368 }
+  }
+]

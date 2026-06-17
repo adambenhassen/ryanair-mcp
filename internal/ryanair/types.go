@@ -84,12 +84,17 @@ type TimetableFlight struct {
 }
 
 // Destination is a reachable airport from an origin, optionally with a fare.
-// Fare is nil when fares were not requested or no fare was found.
+// Fare is nil when fares were not requested or no fare was found. Operator,
+// Recent, and Tags are populated only by AirportDestinations (the searchWidget
+// route endpoint), which reports them per destination.
 type Destination struct {
 	Airport
 
 	Seasonal bool     `json:"seasonal,omitempty"`
 	Fare     *float64 `json:"cheapest_fare,omitempty"`
+	Operator string   `json:"operator,omitempty"`
+	Recent   bool     `json:"recent,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
 // FareWindow is the date window (and optional currency) for the fares probe
@@ -200,6 +205,57 @@ type wireNetworkAirport struct {
 type wireNamed struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
+}
+
+// wireLocAirport mirrors the airport shape returned by the views/locate and
+// geoloc endpoints. Region, TimeZone, Base, and Country.Currency are absent on
+// the leaner geoloc responses; they map to zero values via toAirport.
+type wireLocAirport struct {
+	Code     string    `json:"code"`
+	Name     string    `json:"name"`
+	Aliases  []string  `json:"aliases"`
+	Base     bool      `json:"base"`
+	TimeZone string    `json:"timeZone"`
+	City     wireNamed `json:"city"`
+	Region   wireNamed `json:"region"`
+	Country  struct {
+		Code     string `json:"code"`
+		Name     string `json:"name"`
+		Currency string `json:"currency"`
+	} `json:"country"`
+	Coordinates struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	} `json:"coordinates"`
+}
+
+func (w wireLocAirport) toAirport() Airport {
+	return Airport{
+		IataCode:     w.Code,
+		Name:         w.Name,
+		CityCode:     w.City.Code,
+		CityName:     w.City.Name,
+		CountryCode:  w.Country.Code,
+		CountryName:  w.Country.Name,
+		RegionCode:   w.Region.Code,
+		RegionName:   w.Region.Name,
+		CurrencyCode: w.Country.Currency,
+		TimeZone:     w.TimeZone,
+		Aliases:      w.Aliases,
+		Latitude:     w.Coordinates.Latitude,
+		Longitude:    w.Coordinates.Longitude,
+		Base:         w.Base,
+	}
+}
+
+// wireRoute mirrors one entry from the searchWidget routes endpoint: a
+// reachable destination plus its operator and route metadata.
+type wireRoute struct {
+	ArrivalAirport wireLocAirport `json:"arrivalAirport"`
+	Recent         bool           `json:"recent"`
+	Seasonal       bool           `json:"seasonal"`
+	Operator       string         `json:"operator"`
+	Tags           []string       `json:"tags"`
 }
 
 type wireNetworkResponse struct {

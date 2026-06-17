@@ -74,3 +74,38 @@ func RunAnywhereUnder(c *ryanair.Client, origin, from, to string, maxPrice int) 
 	})
 	return out.Flights, err
 }
+
+// RunActiveAirports invokes the active_airports handler end-to-end.
+func RunActiveAirports(c *ryanair.Client) ([]ryanair.Airport, error) {
+	h := activeAirports(c)
+	_, out, err := h(context.Background(), nil, emptyInput{})
+	return out.Airports, err
+}
+
+// RunAirportInfo invokes the airport_info handler end-to-end.
+func RunAirportInfo(c *ryanair.Client, code string) (ryanair.Airport, error) {
+	h := airportInfo(c)
+	_, out, err := h(context.Background(), nil, airportCodeInput{Code: code})
+	return out, err
+}
+
+// RunAirportDestinations invokes the airport_destinations handler end-to-end.
+func RunAirportDestinations(c *ryanair.Client, origin string) ([]ryanair.Destination, error) {
+	h := airportDestinations(c)
+	_, out, err := h(context.Background(), nil, originInput{Origin: origin})
+	return out.Destinations, err
+}
+
+// RunNearbyAirports invokes the nearby_airports handler end-to-end.
+func RunNearbyAirports(c *ryanair.Client, market string) ([]ryanair.Airport, error) {
+	h := nearbyAirports(c)
+	_, out, err := h(context.Background(), nil, nearbyInput{Market: market})
+	return out.Airports, err
+}
+
+// RunDefaultAirport invokes the default_airport handler end-to-end.
+func RunDefaultAirport(c *ryanair.Client) (ryanair.Airport, error) {
+	h := defaultAirport(c)
+	_, out, err := h(context.Background(), nil, emptyInput{})
+	return out, err
+}

@@ -45,6 +45,16 @@ func exploreClient(t *testing.T) *ryanair.Client {
 			w.WriteHeader(http.StatusOK)
 		case strings.HasPrefix(r.URL.Path, "/api/views/locate/3/aggregate/all/en"):
 			serve(w, "network.json")
+		case strings.HasSuffix(r.URL.Path, "/api/views/locate/5/airports/en/active"):
+			serve(w, "active_airports.json")
+		case strings.HasPrefix(r.URL.Path, "/api/views/locate/5/airports/en/"):
+			serve(w, "airport_info.json")
+		case strings.HasPrefix(r.URL.Path, "/api/views/locate/searchWidget/routes/en/airport/"):
+			serve(w, "airport_destinations.json")
+		case strings.HasPrefix(r.URL.Path, "/api/geoloc/v5/nearbyAirports"):
+			serve(w, "nearby_airports.json")
+		case strings.HasPrefix(r.URL.Path, "/api/geoloc/v5/defaultAirport"):
+			serve(w, "default_airport.json")
 		case strings.HasSuffix(r.URL.Path, "/availabilities"):
 			serve(w, "availabilities.json")
 		case strings.Contains(r.URL.Path, "/roundTripFares/") && strings.HasSuffix(r.URL.Path, "/cheapestPerDay"):
@@ -164,6 +174,61 @@ func TestCheapestWeekendHandler(t *testing.T) {
 	// Omitted weekend_length (0) must default to a valid value (Fri->Sun).
 	if _, err := tools.RunCheapestWeekend(c, "DUB", "STN", 1, 0); err != nil {
 		t.Errorf("default weekend_length: %v", err)
+	}
+}
+
+func TestActiveAirportsHandler(t *testing.T) {
+	c := exploreClient(t)
+	airports, err := tools.RunActiveAirports(c)
+	if err != nil {
+		t.Fatalf("active airports: %v", err)
+	}
+	if len(airports) != 2 || airports[0].IataCode != "DUB" {
+		t.Errorf("airports = %+v, want 2 starting DUB", airports)
+	}
+}
+
+func TestAirportInfoHandler(t *testing.T) {
+	c := exploreClient(t)
+	a, err := tools.RunAirportInfo(c, "DUB")
+	if err != nil {
+		t.Fatalf("airport info: %v", err)
+	}
+	if a.IataCode != "DUB" || a.RegionName != "Leinster" {
+		t.Errorf("airport = %+v", a)
+	}
+}
+
+func TestAirportDestinationsHandler(t *testing.T) {
+	c := exploreClient(t)
+	dests, err := tools.RunAirportDestinations(c, "DUB")
+	if err != nil {
+		t.Fatalf("airport destinations: %v", err)
+	}
+	if len(dests) != 2 || dests[0].Operator != "FR" {
+		t.Errorf("dests = %+v", dests)
+	}
+}
+
+func TestNearbyAirportsHandler(t *testing.T) {
+	c := exploreClient(t)
+	airports, err := tools.RunNearbyAirports(c, "")
+	if err != nil {
+		t.Fatalf("nearby: %v", err)
+	}
+	if len(airports) != 2 || airports[0].IataCode != "STN" {
+		t.Errorf("airports = %+v", airports)
+	}
+}
+
+func TestDefaultAirportHandler(t *testing.T) {
+	c := exploreClient(t)
+	a, err := tools.RunDefaultAirport(c)
+	if err != nil {
+		t.Fatalf("default airport: %v", err)
+	}
+	if a.IataCode != "DUB" {
+		t.Errorf("airport = %+v", a)
 	}
 }
 

@@ -1,0 +1,12 @@
+{
+  "code": "DUB",
+  "name": "Dublin",
+  "seoName": "dublin",
+  "aliases": [],
+  "base": true,
+  "city": { "name": "Dublin", "code": "DUBLIN" },
+  "region": { "name": "Leinster", "code": "LEINSTER" },
+  "country": { "code": "ie", "iso3code": "IRL", "name": "Ireland", "currency": "EUR", "defaultAirportCode": "DUB", "schengen": false },
+  "coordinates": { "latitude": 53.4213, "longitude": -6.27007 },
+  "timeZone": "Europe/Dublin"
+}

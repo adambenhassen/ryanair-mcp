@@ -67,6 +67,31 @@ func Register(server *mcp.Server, client *ryanair.Client) {
 		Name:        "explore_destinations",
 		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window, filter by country/region/city, and group by country or region.",
 	}, exploreDestinations(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "active_airports",
+		Description: "List every airport Ryanair currently flies, with full location metadata, in a single call.",
+	}, activeAirports(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "airport_info",
+		Description: "Get the metadata (city, region, country, timezone, coordinates) for a single airport by IATA code.",
+	}, airportInfo(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "airport_destinations",
+		Description: "List destinations reachable from an origin, each carrying operator, seasonal, recently-added, and tag metadata not available from explore_destinations.",
+	}, airportDestinations(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "nearby_airports",
+		Description: "List airports near the server's IP-derived location (resolves to where the server runs, not the end user). Optionally pass an IETF market/locale tag.",
+	}, nearbyAirports(client))
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "default_airport",
+		Description: "Get the closest airport to the server's IP-derived location (resolves to where the server runs, not the end user).",
+	}, defaultAirport(client))
 }
 
 // --- search_one_way ---
@@ -388,6 +413,77 @@ func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exp
 			return nil, exploreOutput{}, err
 		}
 		return nil, exploreOutput{Groups: groups}, nil
+	}
+}
+
+// --- active_airports / default_airport ---
+
+// emptyInput is the input for tools that take no parameters.
+type emptyInput struct{}
+
+func activeAirports(c *ryanair.Client) mcp.ToolHandlerFor[emptyInput, airportsOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, _ emptyInput) (*mcp.CallToolResult, airportsOutput, error) {
+		airports, err := c.ActiveAirports(ctx)
+		if err != nil {
+			return nil, airportsOutput{}, err
+		}
+		return nil, airportsOutput{Airports: airports}, nil
+	}
+}
+
+func defaultAirport(c *ryanair.Client) mcp.ToolHandlerFor[emptyInput, ryanair.Airport] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, _ emptyInput) (*mcp.CallToolResult, ryanair.Airport, error) {
+		airport, err := c.DefaultAirport(ctx)
+		if err != nil {
+			return nil, ryanair.Airport{}, err
+		}
+		return nil, airport, nil
+	}
+}
+
+// --- airport_info ---
+
+type airportCodeInput struct {
+	Code string `json:"code" jsonschema:"airport IATA code, e.g. DUB"`
+}
+
+func airportInfo(c *ryanair.Client) mcp.ToolHandlerFor[airportCodeInput, ryanair.Airport] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in airportCodeInput) (*mcp.CallToolResult, ryanair.Airport, error) {
+		airport, err := c.AirportInfo(ctx, in.Code)
+		if err != nil {
+			return nil, ryanair.Airport{}, err
+		}
+		return nil, airport, nil
+	}
+}
+
+// --- airport_destinations / nearby_airports ---
+
+type originInput struct {
+	Origin string `json:"origin" jsonschema:"departure airport IATA code"`
+}
+
+func airportDestinations(c *ryanair.Client) mcp.ToolHandlerFor[originInput, exploreOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in originInput) (*mcp.CallToolResult, exploreOutput, error) {
+		dests, err := c.AirportDestinations(ctx, in.Origin)
+		if err != nil {
+			return nil, exploreOutput{}, err
+		}
+		return nil, exploreOutput{Destinations: dests}, nil
+	}
+}
+
+type nearbyInput struct {
+	Market string `json:"market,omitempty" jsonschema:"optional IETF market/locale tag, e.g. en-gb"`
+}
+
+func nearbyAirports(c *ryanair.Client) mcp.ToolHandlerFor[nearbyInput, airportsOutput] {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, in nearbyInput) (*mcp.CallToolResult, airportsOutput, error) {
+		airports, err := c.NearbyAirports(ctx, in.Market)
+		if err != nil {
+			return nil, airportsOutput{}, err
+		}
+		return nil, airportsOutput{Airports: airports}, nil
 	}
 }
 
