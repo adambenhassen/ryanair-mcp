@@ -65,33 +65,13 @@ func Register(server *mcp.Server, client *ryanair.Client) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "explore_destinations",
-		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window, filter by country/region/city, and group by country or region.",
+		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window (with_fares) or with per-route details — operating carrier, recently-added flag, and tags (with_route_details) — filter by country/region/city, and group by country or region.",
 	}, exploreDestinations(client))
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "active_airports",
-		Description: "List every airport Ryanair currently flies, with full location metadata, in a single call.",
-	}, activeAirports(client))
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "airport_info",
 		Description: "Get the metadata (city, region, country, timezone, coordinates) for a single airport by IATA code.",
 	}, airportInfo(client))
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "airport_destinations",
-		Description: "List destinations reachable from an origin, each carrying operator, seasonal, recently-added, and tag metadata not available from explore_destinations.",
-	}, airportDestinations(client))
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "nearby_airports",
-		Description: "List airports near the server's IP-derived location (resolves to where the server runs, not the end user). Optionally pass an IETF market/locale tag.",
-	}, nearbyAirports(client))
-
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "default_airport",
-		Description: "Get the closest airport to the server's IP-derived location (resolves to where the server runs, not the end user).",
-	}, defaultAirport(client))
 }
 
 // --- search_one_way ---
@@ -360,15 +340,16 @@ func validateRoute(c *ryanair.Client) mcp.ToolHandlerFor[routeInput, routeOutput
 // --- explore_destinations ---
 
 type exploreInput struct {
-	Origin    string `json:"origin"               jsonschema:"departure airport IATA code"`
-	WithFares bool   `json:"with_fares,omitempty" jsonschema:"if true, annotate each destination with its cheapest fare in the date window"`
-	DateFrom  string `json:"date_from,omitempty"  jsonschema:"earliest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
-	DateTo    string `json:"date_to,omitempty"    jsonschema:"latest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
-	Currency  string `json:"currency,omitempty"   jsonschema:"optional ISO 4217 currency"`
-	Country   string `json:"country,omitempty"    jsonschema:"optional arrival country ISO2 filter, e.g. es"`
-	Region    string `json:"region,omitempty"     jsonschema:"optional region-code filter, e.g. CATALONIA"`
-	City      string `json:"city,omitempty"       jsonschema:"optional city-code filter, e.g. LONDON"`
-	GroupBy   string `json:"group_by,omitempty"   jsonschema:"optional grouping: 'country' or 'region'; omit for a flat list"`
+	Origin           string `json:"origin"                       jsonschema:"departure airport IATA code"`
+	WithFares        bool   `json:"with_fares,omitempty"         jsonschema:"if true, annotate each destination with its cheapest fare in the date window"`
+	WithRouteDetails bool   `json:"with_route_details,omitempty" jsonschema:"if true, add per-route details via an extra lookup: operating carrier (operator, e.g. FR for Ryanair), whether the route was recently added (recent), and marketing tags like 'popular'. Omit unless the user asks about the airline, new routes, or route labels."`
+	DateFrom         string `json:"date_from,omitempty"          jsonschema:"earliest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
+	DateTo           string `json:"date_to,omitempty"            jsonschema:"latest outbound date for fares, ISO YYYY-MM-DD (required when with_fares is true)"`
+	Currency         string `json:"currency,omitempty"           jsonschema:"optional ISO 4217 currency"`
+	Country          string `json:"country,omitempty"            jsonschema:"optional arrival country ISO2 filter, e.g. es"`
+	Region           string `json:"region,omitempty"             jsonschema:"optional region-code filter, e.g. CATALONIA"`
+	City             string `json:"city,omitempty"               jsonschema:"optional city-code filter, e.g. LONDON"`
+	GroupBy          string `json:"group_by,omitempty"           jsonschema:"optional grouping: 'country' or 'region'; omit for a flat list"`
 }
 
 type destinationGroup struct {
@@ -391,11 +372,12 @@ func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exp
 			return nil, exploreOutput{}, fmt.Errorf("invalid group_by %q (want country or region)", in.GroupBy)
 		}
 		dests, err := c.ExploreDestinations(ctx, ryanair.ExploreParams{
-			Origin:    in.Origin,
-			WithFares: in.WithFares,
-			Country:   in.Country,
-			Region:    in.Region,
-			City:      in.City,
+			Origin:           in.Origin,
+			WithFares:        in.WithFares,
+			WithRouteDetails: in.WithRouteDetails,
+			Country:          in.Country,
+			Region:           in.Region,
+			City:             in.City,
 			Fare: ryanair.FareWindow{
 				DateFrom: in.DateFrom,
 				DateTo:   in.DateTo,
@@ -416,31 +398,6 @@ func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exp
 	}
 }
 
-// --- active_airports / default_airport ---
-
-// emptyInput is the input for tools that take no parameters.
-type emptyInput struct{}
-
-func activeAirports(c *ryanair.Client) mcp.ToolHandlerFor[emptyInput, airportsOutput] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, _ emptyInput) (*mcp.CallToolResult, airportsOutput, error) {
-		airports, err := c.ActiveAirports(ctx)
-		if err != nil {
-			return nil, airportsOutput{}, err
-		}
-		return nil, airportsOutput{Airports: airports}, nil
-	}
-}
-
-func defaultAirport(c *ryanair.Client) mcp.ToolHandlerFor[emptyInput, ryanair.Airport] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, _ emptyInput) (*mcp.CallToolResult, ryanair.Airport, error) {
-		airport, err := c.DefaultAirport(ctx)
-		if err != nil {
-			return nil, ryanair.Airport{}, err
-		}
-		return nil, airport, nil
-	}
-}
-
 // --- airport_info ---
 
 type airportCodeInput struct {
@@ -454,36 +411,6 @@ func airportInfo(c *ryanair.Client) mcp.ToolHandlerFor[airportCodeInput, ryanair
 			return nil, ryanair.Airport{}, err
 		}
 		return nil, airport, nil
-	}
-}
-
-// --- airport_destinations / nearby_airports ---
-
-type originInput struct {
-	Origin string `json:"origin" jsonschema:"departure airport IATA code"`
-}
-
-func airportDestinations(c *ryanair.Client) mcp.ToolHandlerFor[originInput, exploreOutput] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in originInput) (*mcp.CallToolResult, exploreOutput, error) {
-		dests, err := c.AirportDestinations(ctx, in.Origin)
-		if err != nil {
-			return nil, exploreOutput{}, err
-		}
-		return nil, exploreOutput{Destinations: dests}, nil
-	}
-}
-
-type nearbyInput struct {
-	Market string `json:"market,omitempty" jsonschema:"optional IETF market/locale tag, e.g. en-gb"`
-}
-
-func nearbyAirports(c *ryanair.Client) mcp.ToolHandlerFor[nearbyInput, airportsOutput] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in nearbyInput) (*mcp.CallToolResult, airportsOutput, error) {
-		airports, err := c.NearbyAirports(ctx, in.Market)
-		if err != nil {
-			return nil, airportsOutput{}, err
-		}
-		return nil, airportsOutput{Airports: airports}, nil
 	}
 }
 

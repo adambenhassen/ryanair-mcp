@@ -139,7 +139,9 @@ func (c *Client) ValidateRoute(ctx context.Context, origin, dest string) (bool, 
 // destination served by both a regular and a seasonal route is reported as
 // non-seasonal. When WithFares is true, each destination carries its cheapest
 // one-way fare in the given window (nil when no fare was found), via a single
-// "anywhere" fares probe.
+// "anywhere" fares probe. When WithRouteDetails is true, each destination is
+// annotated with operator/recent/tags from the searchWidget route endpoint
+// (fields absent for destinations that endpoint does not report).
 func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) ([]Destination, error) {
 	o := normIATA(params.Origin)
 	if !validIATA(o) {
@@ -203,6 +205,24 @@ func (c *Client) ExploreDestinations(ctx context.Context, params ExploreParams) 
 	}
 	for _, code := range seasonal[o] {
 		add(code, true)
+	}
+
+	if params.WithRouteDetails {
+		routeMeta, err := c.AirportDestinations(ctx, o)
+		if err != nil {
+			return nil, err
+		}
+		meta := make(map[string]Destination, len(routeMeta))
+		for _, r := range routeMeta {
+			meta[r.IataCode] = r
+		}
+		for i := range dests {
+			if r, ok := meta[dests[i].IataCode]; ok {
+				dests[i].Operator = r.Operator
+				dests[i].Recent = r.Recent
+				dests[i].Tags = r.Tags
+			}
+		}
 	}
 
 	if !params.WithFares {

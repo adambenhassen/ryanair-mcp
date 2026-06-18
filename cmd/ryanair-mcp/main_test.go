@@ -49,14 +49,14 @@ func TestStdioSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 16 {
-		t.Errorf("tool count = %d, want 16", len(res.Tools))
+	if len(res.Tools) != 12 {
+		t.Errorf("tool count = %d, want 12", len(res.Tools))
 	}
 	got := make(map[string]bool, len(res.Tools))
 	for _, tl := range res.Tools {
 		got[tl.Name] = true
 	}
-	for _, name := range []string{"search_one_way", "list_airports", "default_airport"} {
+	for _, name := range []string{"search_one_way", "list_airports", "explore_destinations"} {
 		if !got[name] {
 			t.Errorf("subprocess missing tool %q", name)
 		}

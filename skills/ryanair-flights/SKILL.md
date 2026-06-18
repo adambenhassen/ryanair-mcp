@@ -62,14 +62,9 @@ DUB→BCN?".
 - `list_airports` — all Ryanair airports, optional country filter.
 - `validate_route` — does Ryanair fly origin→destination directly?
 - `explore_destinations` — airports reachable from an origin, flagged seasonal,
-  with region/country metadata; optional fares, filters, and `group_by`.
-- `active_airports` — every airport, full metadata, one call.
+  with region/country metadata; optional fares (`with_fares`), per-route
+  operator/recent/tags details (`with_route_details`), filters, and `group_by`.
 - `airport_info` — metadata for one airport. (`code`)
-- `airport_destinations` — destinations from an origin with operator/seasonal/
-  recent/tags metadata.
-- `nearby_airports` / `default_airport` — geolocate by the **caller's IP**; in a
-  server context this is the server's location, not the end user's. Prefer
-  asking the user for an origin instead of relying on these.
 
 ## Recipes
 
@@ -89,16 +84,10 @@ DUB→BCN?".
   an outbound + inbound price calendar side by side.
 - **"Which days is X→Y actually bookable?"** → `get_active_dates` (no prices,
   just the dates the route is open).
-- **"What's the closest Ryanair airport to me, and where can I fly from it?"** →
-  `nearby_airports` (or `default_airport`) for the airport, then
-  `airport_destinations` for its routes — but resolve to the **server's** IP, so
-  prefer asking the user for their origin.
 
 ## Pitfalls
 
 - Empty results are valid answers (no fare/route in range), **not** errors.
-- The IP-based tools (`nearby_airports`, `default_airport`) resolve to the
-  server's location — don't treat them as the user's location.
 - This is unofficial and rate-limited; retry/backoff is built in, but expect
   occasional gaps. No booking, seats, or bag pricing.
 

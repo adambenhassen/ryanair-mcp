@@ -45,16 +45,10 @@ func exploreClient(t *testing.T) *ryanair.Client {
 			w.WriteHeader(http.StatusOK)
 		case strings.HasPrefix(r.URL.Path, "/api/views/locate/3/aggregate/all/en"):
 			serve(w, "network.json")
-		case strings.HasSuffix(r.URL.Path, "/api/views/locate/5/airports/en/active"):
-			serve(w, "active_airports.json")
 		case strings.HasPrefix(r.URL.Path, "/api/views/locate/5/airports/en/"):
 			serve(w, "airport_info.json")
 		case strings.HasPrefix(r.URL.Path, "/api/views/locate/searchWidget/routes/en/airport/"):
-			serve(w, "airport_destinations.json")
-		case strings.HasPrefix(r.URL.Path, "/api/geoloc/v5/nearbyAirports"):
-			serve(w, "nearby_airports.json")
-		case strings.HasPrefix(r.URL.Path, "/api/geoloc/v5/defaultAirport"):
-			serve(w, "default_airport.json")
+			serve(w, "explore_route_metadata.json")
 		case strings.HasSuffix(r.URL.Path, "/availabilities"):
 			serve(w, "availabilities.json")
 		case strings.Contains(r.URL.Path, "/roundTripFares/") && strings.HasSuffix(r.URL.Path, "/cheapestPerDay"):
@@ -177,17 +171,6 @@ func TestCheapestWeekendHandler(t *testing.T) {
 	}
 }
 
-func TestActiveAirportsHandler(t *testing.T) {
-	c := exploreClient(t)
-	airports, err := tools.RunActiveAirports(c)
-	if err != nil {
-		t.Fatalf("active airports: %v", err)
-	}
-	if len(airports) != 2 || airports[0].IataCode != "DUB" {
-		t.Errorf("airports = %+v, want 2 starting DUB", airports)
-	}
-}
-
 func TestAirportInfoHandler(t *testing.T) {
 	c := exploreClient(t)
 	a, err := tools.RunAirportInfo(c, "DUB")
@@ -199,36 +182,20 @@ func TestAirportInfoHandler(t *testing.T) {
 	}
 }
 
-func TestAirportDestinationsHandler(t *testing.T) {
+func TestExploreHandlerWithRouteDetails(t *testing.T) {
 	c := exploreClient(t)
-	dests, err := tools.RunAirportDestinations(c, "DUB")
+	res, err := tools.RunExplore(c, tools.ExploreArgs{Origin: "DUB", WithRouteDetails: true})
 	if err != nil {
-		t.Fatalf("airport destinations: %v", err)
+		t.Fatalf("explore with metadata: %v", err)
 	}
-	if len(dests) != 2 || dests[0].Operator != "FR" {
-		t.Errorf("dests = %+v", dests)
+	var stn ryanair.Destination
+	for _, d := range res.Destinations {
+		if d.IataCode == "STN" {
+			stn = d
+		}
 	}
-}
-
-func TestNearbyAirportsHandler(t *testing.T) {
-	c := exploreClient(t)
-	airports, err := tools.RunNearbyAirports(c, "")
-	if err != nil {
-		t.Fatalf("nearby: %v", err)
-	}
-	if len(airports) != 2 || airports[0].IataCode != "STN" {
-		t.Errorf("airports = %+v", airports)
-	}
-}
-
-func TestDefaultAirportHandler(t *testing.T) {
-	c := exploreClient(t)
-	a, err := tools.RunDefaultAirport(c)
-	if err != nil {
-		t.Fatalf("default airport: %v", err)
-	}
-	if a.IataCode != "DUB" {
-		t.Errorf("airport = %+v", a)
+	if stn.IataCode != "STN" || stn.Operator != "FR" || !stn.Recent {
+		t.Errorf("STN should be enriched with route metadata, got %+v", stn)
 	}
 }
 

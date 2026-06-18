@@ -200,20 +200,6 @@ func TestLiveSmoke(t *testing.T) {
 		}
 	})
 
-	t.Run("ActiveAirports", func(t *testing.T) {
-		airports, err := client.ActiveAirports(liveCtx(t))
-		if err != nil {
-			t.Fatalf("ActiveAirports: %v", err)
-		}
-		t.Logf("active airports: %d", len(airports))
-		if len(airports) == 0 {
-			t.Fatal("expected active airports (possible endpoint drift)")
-		}
-		if airports[0].IataCode == "" || airports[0].CountryCode == "" {
-			t.Errorf("malformed airport: %+v", airports[0])
-		}
-	})
-
 	t.Run("AirportInfo", func(t *testing.T) {
 		a, err := client.AirportInfo(liveCtx(t), liveOrigin)
 		if err != nil {
@@ -236,26 +222,5 @@ func TestLiveSmoke(t *testing.T) {
 		if dests[0].IataCode == "" || dests[0].Operator == "" {
 			t.Errorf("malformed route destination: %+v", dests[0])
 		}
-	})
-
-	t.Run("DefaultAirport", func(t *testing.T) {
-		a, err := client.DefaultAirport(liveCtx(t))
-		if err != nil {
-			t.Fatalf("DefaultAirport: %v", err)
-		}
-		t.Logf("default airport (server IP): %s", a.IataCode)
-		if a.IataCode == "" || a.Name == "" {
-			t.Errorf("malformed default airport: %+v", a)
-		}
-	})
-
-	t.Run("NearbyAirports", func(t *testing.T) {
-		// May legitimately be empty depending on the server's IP-derived
-		// location; we only assert the call succeeds against the live endpoint.
-		airports, err := client.NearbyAirports(liveCtx(t), "")
-		if err != nil {
-			t.Fatalf("NearbyAirports: %v", err)
-		}
-		t.Logf("nearby airports (server IP): %d", len(airports))
 	})
 }

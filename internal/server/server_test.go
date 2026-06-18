@@ -23,8 +23,7 @@ var wantTools = []string{
 	"search_one_way", "search_return", "find_anywhere_under",
 	"cheapest_per_day", "cheapest_return_per_day", "cheapest_weekend",
 	"get_active_dates", "get_schedules", "list_airports", "validate_route",
-	"explore_destinations", "active_airports", "airport_info",
-	"airport_destinations", "nearby_airports", "default_airport",
+	"explore_destinations", "airport_info",
 }
 
 // connect wires an in-memory MCP client to srv and returns the live client

@@ -116,19 +116,11 @@ docker run --rm -p 8080:8080 ghcr.io/adambenhassen/ryanair-mcp:latest \
 | `get_schedules` | Published timetable (days/times a route runs, no prices) for a month. | `origin`, `destination`, `year`, `month` |
 | `list_airports` | List Ryanair airports, optionally filtered by country. | *(opt)* `country` (ISO-3166 alpha-2) |
 | `validate_route` | Whether Ryanair flies a direct route between two airports. | `origin`, `destination` |
-| `explore_destinations` | Airports reachable from an origin (each flagged `seasonal` and carrying region/country metadata), optionally annotated with cheapest fares, filtered, and grouped. | `origin`, *(opt)* `with_fares`, `date_from`, `date_to`, `currency`, `country`, `region`, `city`, `group_by` (`country`\|`region`) |
-| `active_airports` | Every airport Ryanair currently flies, with full location metadata, in one call. | *(none)* |
+| `explore_destinations` | Airports reachable from an origin (each flagged `seasonal` and carrying region/country metadata), optionally annotated with cheapest fares (`with_fares`) or per-route `operator`/`recent`/`tags` details (`with_route_details`), filtered, and grouped. | `origin`, *(opt)* `with_fares`, `with_route_details`, `date_from`, `date_to`, `currency`, `country`, `region`, `city`, `group_by` (`country`\|`region`) |
 | `airport_info` | Metadata for a single airport (city, region, country, timezone, coordinates). | `code` (IATA) |
-| `airport_destinations` | Destinations reachable from an origin, each carrying `operator`, `seasonal`, `recent`, and `tags` metadata. | `origin` |
-| `nearby_airports` | Airports near the server's IP-derived location. | *(opt)* `market` (IETF locale) |
-| `default_airport` | Closest airport to the server's IP-derived location. | *(none)* |
 
 Airport inputs are IATA codes (e.g. `DUB`, `STN`). Dates are ISO `YYYY-MM-DD`.
 Currencies are ISO 4217 (e.g. `EUR`).
-
-> `nearby_airports` and `default_airport` geolocate by the caller's IP. Since
-> this server makes the request, they resolve to the server's location, not the
-> end user's — useful when the server runs near the user, less so otherwise.
 
 ## Agent skill
 

@@ -15,7 +15,7 @@ var GroupDestinations = groupDestinations
 // ExploreArgs mirrors the explore_destinations tool input for tests.
 type ExploreArgs struct {
 	Origin, DateFrom, DateTo, Country, Region, City, GroupBy string
-	WithFares                                                bool
+	WithFares, WithRouteDetails                              bool
 }
 
 // ExploreResult mirrors exploreOutput for tests.
@@ -28,14 +28,15 @@ type ExploreResult struct {
 func RunExplore(c *ryanair.Client, in ExploreArgs) (ExploreResult, error) {
 	h := exploreDestinations(c)
 	_, out, err := h(context.Background(), nil, exploreInput{
-		Origin:    in.Origin,
-		WithFares: in.WithFares,
-		DateFrom:  in.DateFrom,
-		DateTo:    in.DateTo,
-		Country:   in.Country,
-		Region:    in.Region,
-		City:      in.City,
-		GroupBy:   in.GroupBy,
+		Origin:           in.Origin,
+		WithFares:        in.WithFares,
+		WithRouteDetails: in.WithRouteDetails,
+		DateFrom:         in.DateFrom,
+		DateTo:           in.DateTo,
+		Country:          in.Country,
+		Region:           in.Region,
+		City:             in.City,
+		GroupBy:          in.GroupBy,
 	})
 	return ExploreResult(out), err
 }
@@ -75,37 +76,9 @@ func RunAnywhereUnder(c *ryanair.Client, origin, from, to string, maxPrice int) 
 	return out.Flights, err
 }
 
-// RunActiveAirports invokes the active_airports handler end-to-end.
-func RunActiveAirports(c *ryanair.Client) ([]ryanair.Airport, error) {
-	h := activeAirports(c)
-	_, out, err := h(context.Background(), nil, emptyInput{})
-	return out.Airports, err
-}
-
 // RunAirportInfo invokes the airport_info handler end-to-end.
 func RunAirportInfo(c *ryanair.Client, code string) (ryanair.Airport, error) {
 	h := airportInfo(c)
 	_, out, err := h(context.Background(), nil, airportCodeInput{Code: code})
-	return out, err
-}
-
-// RunAirportDestinations invokes the airport_destinations handler end-to-end.
-func RunAirportDestinations(c *ryanair.Client, origin string) ([]ryanair.Destination, error) {
-	h := airportDestinations(c)
-	_, out, err := h(context.Background(), nil, originInput{Origin: origin})
-	return out.Destinations, err
-}
-
-// RunNearbyAirports invokes the nearby_airports handler end-to-end.
-func RunNearbyAirports(c *ryanair.Client, market string) ([]ryanair.Airport, error) {
-	h := nearbyAirports(c)
-	_, out, err := h(context.Background(), nil, nearbyInput{Market: market})
-	return out.Airports, err
-}
-
-// RunDefaultAirport invokes the default_airport handler end-to-end.
-func RunDefaultAirport(c *ryanair.Client) (ryanair.Airport, error) {
-	h := defaultAirport(c)
-	_, out, err := h(context.Background(), nil, emptyInput{})
 	return out, err
 }

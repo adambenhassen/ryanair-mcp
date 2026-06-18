@@ -1,0 +1,28 @@
+[
+  {
+    "arrivalAirport": {
+      "code": "STN",
+      "name": "London Stansted",
+      "city": { "name": "London", "code": "LONDON" },
+      "region": { "name": "England", "code": "ENGLAND" },
+      "country": { "code": "gb", "name": "United Kingdom" }
+    },
+    "recent": true,
+    "seasonal": false,
+    "operator": "FR",
+    "tags": ["popular"]
+  },
+  {
+    "arrivalAirport": {
+      "code": "BCN",
+      "name": "Barcelona",
+      "city": { "name": "Barcelona", "code": "BARCELONA" },
+      "region": { "name": "Catalonia", "code": "CATALONIA" },
+      "country": { "code": "es", "name": "Spain" }
+    },
+    "recent": false,
+    "seasonal": false,
+    "operator": "FR",
+    "tags": []
+  }
+]

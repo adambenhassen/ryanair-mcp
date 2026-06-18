@@ -85,8 +85,8 @@ type TimetableFlight struct {
 
 // Destination is a reachable airport from an origin, optionally with a fare.
 // Fare is nil when fares were not requested or no fare was found. Operator,
-// Recent, and Tags are populated only by AirportDestinations (the searchWidget
-// route endpoint), which reports them per destination.
+// Recent, and Tags come from the searchWidget route endpoint — populated by
+// AirportDestinations, or by ExploreDestinations when WithRouteDetails is set.
 type Destination struct {
 	Airport
 
@@ -107,12 +107,13 @@ type FareWindow struct {
 
 // ExploreParams selects and filters reachable destinations from an origin.
 type ExploreParams struct {
-	Origin    string     // required, IATA
-	WithFares bool       // annotate each destination with its cheapest fare
-	Country   string     // optional ISO2 filter
-	Region    string     // optional region code filter
-	City      string     // optional city code filter
-	Fare      FareWindow // date window for the fares probe (used when WithFares)
+	Origin           string     // required, IATA
+	WithFares        bool       // annotate each destination with its cheapest fare
+	WithRouteDetails bool       // annotate each destination with operator/recent/tags
+	Country          string     // optional ISO2 filter
+	Region           string     // optional region code filter
+	City             string     // optional city code filter
+	Fare             FareWindow // date window for the fares probe (used when WithFares)
 }
 
 // --- Wire types (unexported, mirror Ryanair's JSON) ---

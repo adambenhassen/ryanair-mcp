@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `explore_destinations` gained a `with_route_details` option that annotates
+  each destination with `operator`, `recent`, and `tags` from the searchWidget
+  route endpoint — the data previously exposed only by `airport_destinations`.
+
+### Removed
+
+- Tools `nearby_airports`, `default_airport`, `active_airports`, and
+  `airport_destinations`. The first two geolocated by the server's IP rather
+  than the user's (limited value); `active_airports` duplicated `list_airports`
+  with no country filter; and `airport_destinations` is now subsumed by
+  `explore_destinations` with `with_route_details`. **Breaking** for any caller
+  relying on these tool names.
+
 ## [0.2.0] - 2026-06-17
 
 ### Added
