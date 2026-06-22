@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"time"
 
 	"github.com/adambenhassen/ryanair-mcp/internal/ryanair"
@@ -14,7 +15,24 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const version = "0.1.0"
+// version is the server version advertised to MCP clients. It is not a
+// hand-maintained constant (which drifts from the release tag): release builds
+// stamp the tag via -ldflags "-X .../internal/server.version=<tag>", and
+// `go install module@vX` builds fall back to the module version from build
+// info. Plain local builds report "dev".
+var version = "dev"
+
+// serverVersion resolves the version to advertise, preferring an ldflags-stamped
+// value, then the build-info module version, then the "dev" default.
+func serverVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return version
+}
 
 // httpReadHeaderTimeout bounds how long the HTTP server waits for request
 // headers, guarding against slow-client resource exhaustion.
@@ -26,7 +44,7 @@ func New() (*mcp.Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("server: build ryanair client: %w", err)
 	}
-	srv := mcp.NewServer(&mcp.Implementation{Name: "ryanair-mcp", Version: version}, nil)
+	srv := mcp.NewServer(&mcp.Implementation{Name: "ryanair-mcp", Version: serverVersion()}, nil)
 	tools.Register(srv, client)
 	return srv, nil
 }

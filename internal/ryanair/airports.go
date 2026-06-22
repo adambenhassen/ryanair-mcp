@@ -13,7 +13,7 @@ func (c *Client) AirportInfo(ctx context.Context, code string) (Airport, error) 
 	}
 	endpoint := "api/views/locate/5/airports/en/" + a
 	var w wireLocAirport
-	if err := getJSON(ctx, c, endpoint, wwwHost+"/"+endpoint, nil, &w); err != nil {
+	if err := getJSON(ctx, c, wwwHost, endpoint, nil, &w); err != nil {
 		return Airport{}, err
 	}
 	return w.toAirport(), nil
@@ -29,7 +29,7 @@ func (c *Client) AirportDestinations(ctx context.Context, origin string) ([]Dest
 	}
 	endpoint := "api/views/locate/searchWidget/routes/en/airport/" + o
 	var resp []wireRoute
-	if err := getJSON(ctx, c, endpoint, wwwHost+"/"+endpoint, nil, &resp); err != nil {
+	if err := getJSON(ctx, c, wwwHost, endpoint, nil, &resp); err != nil {
 		return nil, err
 	}
 	dests := make([]Destination, 0, len(resp))

@@ -12,63 +12,63 @@ import (
 )
 
 // Register adds every Ryanair tool to the server, backed by client.
-func Register(server *mcp.Server, client *ryanair.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+func Register(srv *mcp.Server, client *ryanair.Client) {
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "search_one_way",
 		Description: "Find the cheapest one-way Ryanair fares from an origin airport within a departure-date window. Omit destination/country to search anywhere.",
 	}, searchOneWay(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "search_return",
 		Description: "Find the cheapest Ryanair return fares across outbound and inbound date windows, with optional trip-duration limits.",
 	}, searchReturn(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "find_anywhere_under",
 		Description: "Find the cheapest reachable destination from an origin under a price cap, within a departure-date window. Returns the cheapest fare per destination, sorted by price.",
 	}, findAnywhereUnder(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "cheapest_per_day",
 		Description: "Get the cheapest one-way fare for each day of a month on a specific route (price calendar).",
 	}, cheapestPerDay(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "cheapest_return_per_day",
 		Description: "Get the cheapest return fare per day on a route, with outbound and inbound price calendars side by side and optional trip-duration limits.",
 	}, cheapestReturnPerDay(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "cheapest_weekend",
 		Description: "Find the cheapest Friday-to-Sunday (or Friday-to-Monday) return weekend on a route over the next few months. Returns the outbound/inbound pair and total price.",
 	}, cheapestWeekend(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "get_active_dates",
 		Description: "List the dates a route is currently bookable (ISO YYYY-MM-DD, no prices). Useful for checking which days a route operates.",
 	}, getActiveDates(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "get_schedules",
 		Description: "Get the published timetable (days and times a route runs, no prices) for a month.",
 	}, getSchedules(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "list_airports",
 		Description: "List Ryanair airports, optionally filtered by ISO-3166 alpha-2 country code.",
 	}, listAirports(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "validate_route",
 		Description: "Check whether Ryanair flies a direct route between two airports.",
 	}, validateRoute(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "explore_destinations",
 		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window (with_fares) or with per-route details — operating carrier, recently-added flag, and tags (with_route_details) — filter by country/region/city, and group by country or region.",
 	}, exploreDestinations(client))
 
-	mcp.AddTool(server, &mcp.Tool{
+	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "airport_info",
 		Description: "Get the metadata (city, region, country, timezone, coordinates) for a single airport by IATA code.",
 	}, airportInfo(client))
@@ -90,17 +90,24 @@ type flightsOutput struct {
 	Flights []ryanair.Flight `json:"flights"`
 }
 
+// toParams translates the tool input into the client fare params. It is the one
+// place the oneWayInput->OneWayParams field mapping lives, shared by the
+// one-way and return handlers.
+func (in oneWayInput) toParams() ryanair.OneWayParams {
+	return ryanair.OneWayParams{
+		Origin:      in.Origin,
+		DateFrom:    in.DateFrom,
+		DateTo:      in.DateTo,
+		Destination: in.Destination,
+		Country:     in.Country,
+		MaxPrice:    in.MaxPrice,
+		Currency:    in.Currency,
+	}
+}
+
 func searchOneWay(c *ryanair.Client) mcp.ToolHandlerFor[oneWayInput, flightsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in oneWayInput) (*mcp.CallToolResult, flightsOutput, error) {
-		flights, err := c.OneWayFares(ctx, ryanair.OneWayParams{
-			Origin:      in.Origin,
-			DateFrom:    in.DateFrom,
-			DateTo:      in.DateTo,
-			Destination: in.Destination,
-			Country:     in.Country,
-			MaxPrice:    in.MaxPrice,
-			Currency:    in.Currency,
-		})
+		flights, err := c.OneWayFares(ctx, in.toParams())
 		if err != nil {
 			return nil, flightsOutput{}, err
 		}
@@ -126,19 +133,11 @@ type returnsOutput struct {
 func searchReturn(c *ryanair.Client) mcp.ToolHandlerFor[returnInput, returnsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in returnInput) (*mcp.CallToolResult, returnsOutput, error) {
 		trips, err := c.RoundTripFares(ctx, ryanair.ReturnParams{
-			OneWayParams: ryanair.OneWayParams{
-				Origin:      in.Origin,
-				DateFrom:    in.DateFrom,
-				DateTo:      in.DateTo,
-				Destination: in.Destination,
-				Country:     in.Country,
-				MaxPrice:    in.MaxPrice,
-				Currency:    in.Currency,
-			},
-			ReturnFrom:  in.ReturnFrom,
-			ReturnTo:    in.ReturnTo,
-			MinTripDays: in.MinTripDays,
-			MaxTripDays: in.MaxTripDays,
+			OneWayParams: in.toParams(),
+			ReturnFrom:   in.ReturnFrom,
+			ReturnTo:     in.ReturnTo,
+			MinTripDays:  in.MinTripDays,
+			MaxTripDays:  in.MaxTripDays,
 		})
 		if err != nil {
 			return nil, returnsOutput{}, err
@@ -157,15 +156,22 @@ type anywhereInput struct {
 	Currency string `json:"currency,omitempty" jsonschema:"optional ISO 4217 currency, e.g. EUR"`
 }
 
+// toParams translates the anywhere-search input into client fare params.
+// Destination and Country are intentionally absent: AnywhereUnder probes the
+// whole network.
+func (in anywhereInput) toParams() ryanair.OneWayParams {
+	return ryanair.OneWayParams{
+		Origin:   in.Origin,
+		DateFrom: in.DateFrom,
+		DateTo:   in.DateTo,
+		MaxPrice: in.MaxPrice,
+		Currency: in.Currency,
+	}
+}
+
 func findAnywhereUnder(c *ryanair.Client) mcp.ToolHandlerFor[anywhereInput, flightsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in anywhereInput) (*mcp.CallToolResult, flightsOutput, error) {
-		flights, err := c.AnywhereUnder(ctx, ryanair.OneWayParams{
-			Origin:   in.Origin,
-			DateFrom: in.DateFrom,
-			DateTo:   in.DateTo,
-			MaxPrice: in.MaxPrice,
-			Currency: in.Currency,
-		})
+		flights, err := c.AnywhereUnder(ctx, in.toParams())
 		if err != nil {
 			return nil, flightsOutput{}, err
 		}
@@ -188,7 +194,12 @@ type calendarOutput struct {
 
 func cheapestPerDay(c *ryanair.Client) mcp.ToolHandlerFor[calendarInput, calendarOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in calendarInput) (*mcp.CallToolResult, calendarOutput, error) {
-		days, err := c.CheapestPerDay(ctx, in.Origin, in.Destination, in.Month, in.Currency)
+		days, err := c.CheapestPerDay(ctx, ryanair.CalendarParams{
+			Origin:      in.Origin,
+			Destination: in.Destination,
+			Month:       in.Month,
+			Currency:    in.Currency,
+		})
 		if err != nil {
 			return nil, calendarOutput{}, err
 		}
@@ -210,7 +221,15 @@ type returnCalendarInput struct {
 
 func cheapestReturnPerDay(c *ryanair.Client) mcp.ToolHandlerFor[returnCalendarInput, ryanair.ReturnDailyFares] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in returnCalendarInput) (*mcp.CallToolResult, ryanair.ReturnDailyFares, error) {
-		res, err := c.CheapestReturnPerDay(ctx, in.Origin, in.Destination, in.OutboundMonth, in.InboundMonth, in.MinTripDays, in.MaxTripDays, in.Currency)
+		res, err := c.CheapestReturnPerDay(ctx, ryanair.ReturnCalendarParams{
+			Origin:        in.Origin,
+			Destination:   in.Destination,
+			OutboundMonth: in.OutboundMonth,
+			InboundMonth:  in.InboundMonth,
+			MinTripDays:   in.MinTripDays,
+			MaxTripDays:   in.MaxTripDays,
+			Currency:      in.Currency,
+		})
 		if err != nil {
 			return nil, ryanair.ReturnDailyFares{}, err
 		}
@@ -242,7 +261,12 @@ func cheapestWeekend(c *ryanair.Client) mcp.ToolHandlerFor[weekendInput, weekend
 		if weekendLength == 0 {
 			weekendLength = 2
 		}
-		trip, err := c.CheapestWeekend(ctx, in.Origin, in.Destination, monthsAhead, weekendLength)
+		trip, err := c.CheapestWeekend(ctx, ryanair.WeekendParams{
+			Origin:        in.Origin,
+			Destination:   in.Destination,
+			MonthsAhead:   monthsAhead,
+			WeekendLength: weekendLength,
+		})
 		if err != nil {
 			return nil, weekendOutput{}, err
 		}
@@ -286,7 +310,12 @@ type scheduleOutput struct {
 
 func getSchedules(c *ryanair.Client) mcp.ToolHandlerFor[scheduleInput, scheduleOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in scheduleInput) (*mcp.CallToolResult, scheduleOutput, error) {
-		flights, err := c.Schedules(ctx, in.Origin, in.Destination, in.Year, in.Month)
+		flights, err := c.Schedules(ctx, ryanair.ScheduleParams{
+			Origin:      in.Origin,
+			Destination: in.Destination,
+			Year:        in.Year,
+			Month:       in.Month,
+		})
 		if err != nil {
 			return nil, scheduleOutput{}, err
 		}
@@ -368,8 +397,10 @@ type exploreOutput struct {
 func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exploreOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in exploreInput) (*mcp.CallToolResult, exploreOutput, error) {
 		// Validate group_by up front so a bad value fails before any network call.
-		if in.GroupBy != "" && in.GroupBy != "country" && in.GroupBy != "region" {
-			return nil, exploreOutput{}, fmt.Errorf("invalid group_by %q (want country or region)", in.GroupBy)
+		if in.GroupBy != "" {
+			if err := validateGroupBy(in.GroupBy); err != nil {
+				return nil, exploreOutput{}, err
+			}
 		}
 		dests, err := c.ExploreDestinations(ctx, ryanair.ExploreParams{
 			Origin:           in.Origin,
@@ -414,18 +445,31 @@ func airportInfo(c *ryanair.Client) mcp.ToolHandlerFor[airportCodeInput, ryanair
 	}
 }
 
+// validateGroupBy is the single source of truth for which group_by values are
+// supported. It rejects anything other than "country" or "region" (the empty
+// "no grouping" case is handled by the caller before this point).
+func validateGroupBy(by string) error {
+	switch by {
+	case "country", "region":
+		return nil
+	default:
+		return fmt.Errorf("invalid group_by %q (want country or region)", by)
+	}
+}
+
 // groupDestinations buckets destinations by country or region, preserving
 // first-seen order of both groups and their members.
 func groupDestinations(dests []ryanair.Destination, by string) ([]destinationGroup, error) {
+	if err := validateGroupBy(by); err != nil {
+		return nil, err
+	}
 	type keyName struct{ key, name string }
 	var pick func(ryanair.Destination) keyName
 	switch by {
-	case "country":
-		pick = func(d ryanair.Destination) keyName { return keyName{d.CountryCode, d.CountryName} }
 	case "region":
 		pick = func(d ryanair.Destination) keyName { return keyName{d.RegionCode, d.RegionName} }
-	default:
-		return nil, fmt.Errorf("invalid group_by %q (want country or region)", by)
+	default: // "country" — validateGroupBy guarantees only country/region reach here
+		pick = func(d ryanair.Destination) keyName { return keyName{d.CountryCode, d.CountryName} }
 	}
 	groups := make([]destinationGroup, 0)
 	index := make(map[string]int)

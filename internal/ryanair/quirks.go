@@ -49,6 +49,17 @@ func validIATA(code string) bool {
 	return true
 }
 
+// normRoute normalizes an origin/destination IATA pair and validates both,
+// returning the shared "invalid route" error. It centralizes the preamble the
+// route-keyed endpoints (fares, schedules, route validation) all share.
+func normRoute(origin, dest string) (o, d string, err error) {
+	o, d = normIATA(origin), normIATA(dest)
+	if !validIATA(o) || !validIATA(d) {
+		return "", "", fmt.Errorf("invalid route %q-%q", origin, dest)
+	}
+	return o, d, nil
+}
+
 // validateDateRange ensures from is not after to. Both are inclusive ISO dates.
 func validateDateRange(label, from, to string) error {
 	f, err := time.Parse(dateLayout, from)

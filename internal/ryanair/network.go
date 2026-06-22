@@ -23,7 +23,7 @@ func (c *Client) loadNetwork(ctx context.Context) ([]Airport, map[string][]strin
 	}
 
 	var resp wireNetworkResponse
-	if err := getJSON(ctx, c, networkEndpoint, wwwHost+"/"+networkEndpoint, nil, &resp); err != nil {
+	if err := getJSON(ctx, c, wwwHost, networkEndpoint, nil, &resp); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -123,9 +123,9 @@ func (c *Client) ListAirports(ctx context.Context, country string) ([]Airport, e
 // ValidateRoute reports whether origin has a (scheduled or seasonal) route to
 // dest in Ryanair's network.
 func (c *Client) ValidateRoute(ctx context.Context, origin, dest string) (bool, error) {
-	o, d := normIATA(origin), normIATA(dest)
-	if !validIATA(o) || !validIATA(d) {
-		return false, fmt.Errorf("invalid route %q-%q", origin, dest)
+	o, d, err := normRoute(origin, dest)
+	if err != nil {
+		return false, err
 	}
 	_, routes, seasonal, err := c.loadNetwork(ctx)
 	if err != nil {

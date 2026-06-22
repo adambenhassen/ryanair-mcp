@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -99,6 +100,89 @@ func TestServerCallToolRoundtrip(t *testing.T) {
 	if !strings.Contains(string(blob), `"iata_code":"DUB"`) {
 		t.Errorf("list_airports result missing DUB: %s", blob)
 	}
+}
+
+// TestRunHTTPLifecycle starts RunHTTP on a real loopback port, performs a full
+// MCP roundtrip (initialize + tools/list) over the streamable-HTTP transport,
+// then cancels the context and asserts RunHTTP shuts down gracefully with a nil
+// return — covering the transport, cross-origin handler, and shutdown/error-join
+// path that the stdio test does not reach.
+func TestRunHTTPLifecycle(t *testing.T) {
+	srv := mcp.NewServer(&mcp.Implementation{Name: "ryanair-mcp", Version: "test"}, nil)
+	tools.Register(srv, fixtureClient(t))
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Reserve a free loopback port, then hand its address to RunHTTP (which owns
+	// its own listener). The brief gap between close and re-listen is acceptable
+	// for a loopback test.
+	var lc net.ListenConfig
+	lis, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("reserve port: %v", err)
+	}
+	addr := lis.Addr().String()
+	if err := lis.Close(); err != nil {
+		t.Fatalf("close reservation: %v", err)
+	}
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- server.RunHTTP(ctx, srv, addr) }()
+
+	endpoint := "http://" + addr
+	waitForServer(ctx, t, endpoint)
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "0"}, nil)
+	cs, err := client.Connect(ctx, &mcp.StreamableClientTransport{
+		Endpoint: endpoint,
+		// Request-response only: no persistent SSE stream to hold up shutdown.
+		DisableStandaloneSSE: true,
+	}, nil)
+	if err != nil {
+		t.Fatalf("client connect over HTTP: %v", err)
+	}
+	res, err := cs.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatalf("ListTools over HTTP: %v", err)
+	}
+	if len(res.Tools) != len(wantTools) {
+		t.Errorf("tool count over HTTP = %d, want %d", len(res.Tools), len(wantTools))
+	}
+	if err := cs.Close(); err != nil {
+		t.Errorf("close client session: %v", err)
+	}
+
+	// Cancelling the context must trigger graceful shutdown and a nil return.
+	cancel()
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("RunHTTP returned %v, want nil after graceful shutdown", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("RunHTTP did not return after context cancel")
+	}
+}
+
+// waitForServer polls endpoint until it accepts connections or the deadline hits.
+func waitForServer(ctx context.Context, t *testing.T, endpoint string) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, http.NoBody)
+		if err != nil {
+			t.Fatalf("build readiness request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err == nil {
+			if cerr := resp.Body.Close(); cerr != nil {
+				t.Errorf("close readiness body: %v", cerr)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("server did not start within deadline")
 }
 
 // fixtureClient builds a ryanair.Client backed by the recorded testdata

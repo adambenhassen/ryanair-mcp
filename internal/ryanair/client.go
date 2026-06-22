@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -22,9 +21,13 @@ const (
 	defaultTimeout    = 15 * time.Second
 	defaultNetworkTTL = 6 * time.Hour
 	maxRetries        = 3
-	baseBackoff       = 300 * time.Millisecond
 	maxBodySnippet    = 512
 )
+
+// baseBackoff is the first-retry delay for the capped exponential backoff. It is
+// a var (not a const) only so retry tests can shrink it via export_test.go;
+// production never reassigns it.
+var baseBackoff = 300 * time.Millisecond
 
 // userAgents is a small pool of realistic desktop browser User-Agent strings.
 // One is chosen per request; Ryanair sometimes blocks obvious non-browser
@@ -112,14 +115,15 @@ func (c *Client) prime(ctx context.Context) error {
 	return c.primeErr
 }
 
-// getJSON performs a primed, retrying GET and decodes the JSON body into out.
-func getJSON[T any](ctx context.Context, c *Client, endpoint, rawURL string, query url.Values, out *T) error {
+// getJSON performs a primed, retrying GET against host+"/"+endpoint and decodes
+// the JSON body into out. endpoint also labels the request in error messages.
+func getJSON[T any](ctx context.Context, c *Client, host, endpoint string, query url.Values, out *T) error {
 	if err := c.prime(ctx); err != nil {
 		return err
 	}
-	full := rawURL
+	full := host + "/" + endpoint
 	if len(query) > 0 {
-		full = rawURL + "?" + query.Encode()
+		full += "?" + query.Encode()
 	}
 
 	var lastErr error
@@ -204,9 +208,4 @@ func drainClose(resp *http.Response) error {
 func randomUA() string {
 	//nolint:gosec // G404: UA rotation is cosmetic and needs no crypto-grade randomness.
 	return userAgents[rand.IntN(len(userAgents))]
-}
-
-// itoa is a small helper for building query params without fmt.
-func itoa(n int) string {
-	return strconv.Itoa(n)
 }

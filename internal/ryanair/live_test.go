@@ -85,7 +85,7 @@ func TestLiveSmoke(t *testing.T) {
 	})
 
 	t.Run("CheapestPerDay", func(t *testing.T) {
-		days, err := client.CheapestPerDay(liveCtx(t), liveOrigin, liveDest, monthStr, "")
+		days, err := client.CheapestPerDay(liveCtx(t), ryanair.CalendarParams{Origin: liveOrigin, Destination: liveDest, Month: monthStr})
 		if err != nil {
 			t.Fatalf("CheapestPerDay: %v", err)
 		}
@@ -110,7 +110,7 @@ func TestLiveSmoke(t *testing.T) {
 	})
 
 	t.Run("CheapestReturnPerDay", func(t *testing.T) {
-		res, err := client.CheapestReturnPerDay(liveCtx(t), liveOrigin, liveDest, monthStr, monthStr, 2, 7, "")
+		res, err := client.CheapestReturnPerDay(liveCtx(t), ryanair.ReturnCalendarParams{Origin: liveOrigin, Destination: liveDest, OutboundMonth: monthStr, InboundMonth: monthStr, MinTripDays: 2, MaxTripDays: 7})
 		if err != nil {
 			t.Fatalf("CheapestReturnPerDay: %v", err)
 		}
@@ -123,7 +123,7 @@ func TestLiveSmoke(t *testing.T) {
 	t.Run("CheapestWeekend", func(t *testing.T) {
 		// May legitimately be nil if no priced weekend exists; we only assert the
 		// multi-month composition runs without error against the live endpoint.
-		trip, err := client.CheapestWeekend(liveCtx(t), liveOrigin, liveDest, 2, 2)
+		trip, err := client.CheapestWeekend(liveCtx(t), ryanair.WeekendParams{Origin: liveOrigin, Destination: liveDest, MonthsAhead: 2, WeekendLength: 2})
 		if err != nil {
 			t.Fatalf("CheapestWeekend: %v", err)
 		}
@@ -134,7 +134,7 @@ func TestLiveSmoke(t *testing.T) {
 	})
 
 	t.Run("Schedules", func(t *testing.T) {
-		flights, err := client.Schedules(liveCtx(t), liveOrigin, liveDest, month.Year(), int(month.Month()))
+		flights, err := client.Schedules(liveCtx(t), ryanair.ScheduleParams{Origin: liveOrigin, Destination: liveDest, Year: month.Year(), Month: int(month.Month())})
 		if err != nil {
 			t.Fatalf("Schedules: %v", err)
 		}

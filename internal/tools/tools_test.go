@@ -23,8 +23,23 @@ func (rt rewriteHost) RoundTrip(req *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(req)
 }
 
+// capturedRequest records the last non-priming request a handler issued, so
+// tests can assert input fields were mapped onto the right query/path segments.
+type capturedRequest struct {
+	path  string
+	query url.Values
+}
+
 // exploreClient builds a ryanair.Client backed by the ryanair package fixtures.
 func exploreClient(t *testing.T) *ryanair.Client {
+	t.Helper()
+	return fixtureClient(t, nil)
+}
+
+// fixtureClient builds a ryanair.Client whose test server replays the ryanair
+// package fixtures for every supported endpoint. When capture is non-nil, the
+// last non-priming request's path and query are recorded into it.
+func fixtureClient(t *testing.T, capture *capturedRequest) *ryanair.Client {
 	t.Helper()
 	serve := func(w http.ResponseWriter, name string) {
 		b, err := os.ReadFile(filepath.Join("..", "ryanair", "testdata", name))
@@ -40,6 +55,10 @@ func exploreClient(t *testing.T) *ryanair.Client {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if capture != nil && r.URL.Path != "/" {
+			capture.path = r.URL.Path
+			capture.query = r.URL.Query()
+		}
 		switch {
 		case r.URL.Path == "/":
 			w.WriteHeader(http.StatusOK)
@@ -51,10 +70,16 @@ func exploreClient(t *testing.T) *ryanair.Client {
 			serve(w, "explore_route_metadata.json")
 		case strings.HasSuffix(r.URL.Path, "/availabilities"):
 			serve(w, "availabilities.json")
+		case strings.Contains(r.URL.Path, "/oneWayFares/") && strings.HasSuffix(r.URL.Path, "/cheapestPerDay"):
+			serve(w, "cheapest_per_day.json")
 		case strings.Contains(r.URL.Path, "/roundTripFares/") && strings.HasSuffix(r.URL.Path, "/cheapestPerDay"):
 			serve(w, "return_cheapest_per_day.json")
+		case strings.HasPrefix(r.URL.Path, "/farfnd/v4/roundTripFares"):
+			serve(w, "round_trip_fares.json")
 		case strings.HasPrefix(r.URL.Path, "/farfnd/v4/oneWayFares"):
 			serve(w, "one_way_fares.json")
+		case strings.HasPrefix(r.URL.Path, "/timtbl/3/schedules"):
+			serve(w, "schedules.json")
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}
@@ -256,5 +281,128 @@ func TestGroupDestinationsByRegion(t *testing.T) {
 func TestGroupDestinationsInvalid(t *testing.T) {
 	if _, err := tools.GroupDestinations(nil, "city"); err == nil {
 		t.Fatal("expected error for invalid group_by")
+	}
+}
+
+// The handler-wiring tests below exercise the thin tool handlers end-to-end and
+// assert each maps its input fields onto the right request — a swapped or
+// mistyped field (e.g. origin/destination) would otherwise compile and pass.
+
+func TestSearchOneWayHandlerWiring(t *testing.T) {
+	rec := &capturedRequest{}
+	c := fixtureClient(t, rec)
+	flights, err := tools.RunSearchOneWay(c, tools.OneWayArgs{
+		Origin: "DUB", Destination: "STN", DateFrom: "2026-07-01", DateTo: "2026-07-31",
+		MaxPrice: 100, Currency: "EUR",
+	})
+	if err != nil {
+		t.Fatalf("search_one_way: %v", err)
+	}
+	if len(flights) == 0 {
+		t.Fatal("expected flights")
+	}
+	for field, want := range map[string]string{
+		"departureAirportIataCode": "DUB",
+		"arrivalAirportIataCode":   "STN",
+		"priceValueTo":             "100",
+		"currency":                 "EUR",
+	} {
+		if got := rec.query.Get(field); got != want {
+			t.Errorf("query[%s] = %q, want %q (field mapping wrong)", field, got, want)
+		}
+	}
+}
+
+func TestSearchReturnHandlerWiring(t *testing.T) {
+	rec := &capturedRequest{}
+	c := fixtureClient(t, rec)
+	trips, err := tools.RunSearchReturn(c, tools.ReturnArgs{
+		Origin: "DUB", Destination: "STN", DateFrom: "2026-07-01", DateTo: "2026-07-15",
+		ReturnFrom: "2026-07-20", ReturnTo: "2026-07-31", MinTripDays: 3, MaxTripDays: 7,
+	})
+	if err != nil {
+		t.Fatalf("search_return: %v", err)
+	}
+	if len(trips) == 0 {
+		t.Fatal("expected trips")
+	}
+	for field, want := range map[string]string{
+		"departureAirportIataCode": "DUB",
+		"arrivalAirportIataCode":   "STN",
+		"inboundDepartureDateFrom": "2026-07-20",
+		"durationFrom":             "3",
+		"durationTo":               "7",
+	} {
+		if got := rec.query.Get(field); got != want {
+			t.Errorf("query[%s] = %q, want %q (field mapping wrong)", field, got, want)
+		}
+	}
+}
+
+func TestCheapestPerDayHandlerWiring(t *testing.T) {
+	rec := &capturedRequest{}
+	c := fixtureClient(t, rec)
+	days, err := tools.RunCheapestPerDay(c, "DUB", "STN", "2026-07-01", "EUR")
+	if err != nil {
+		t.Fatalf("cheapest_per_day: %v", err)
+	}
+	if len(days) == 0 {
+		t.Fatal("expected daily fares")
+	}
+	if !strings.HasSuffix(rec.path, "/oneWayFares/DUB/STN/cheapestPerDay") {
+		t.Errorf("path = %q, want origin/dest DUB/STN in route", rec.path)
+	}
+	if got := rec.query.Get("outboundMonthOfDate"); got != "2026-07-01" {
+		t.Errorf("outboundMonthOfDate = %q, want 2026-07-01", got)
+	}
+}
+
+func TestGetSchedulesHandlerWiring(t *testing.T) {
+	rec := &capturedRequest{}
+	c := fixtureClient(t, rec)
+	flights, err := tools.RunGetSchedules(c, "DUB", "STN", 2026, 7)
+	if err != nil {
+		t.Fatalf("get_schedules: %v", err)
+	}
+	if len(flights) == 0 {
+		t.Fatal("expected timetable flights")
+	}
+	if !strings.HasSuffix(rec.path, "/schedules/DUB/STN/years/2026/months/7") {
+		t.Errorf("path = %q, want DUB/STN/years/2026/months/7", rec.path)
+	}
+}
+
+func TestListAirportsHandlerWiring(t *testing.T) {
+	c := exploreClient(t)
+	all, err := tools.RunListAirports(c, "")
+	if err != nil {
+		t.Fatalf("list_airports: %v", err)
+	}
+	if len(all) != 4 {
+		t.Errorf("airports = %d, want 4", len(all))
+	}
+	ie, err := tools.RunListAirports(c, "IE")
+	if err != nil {
+		t.Fatalf("list_airports(IE): %v", err)
+	}
+	if len(ie) != 1 || ie[0].IataCode != "DUB" {
+		t.Errorf("IE airports = %+v, want [DUB] (country filter mapping)", ie)
+	}
+}
+
+func TestValidateRouteHandlerWiring(t *testing.T) {
+	c := exploreClient(t)
+	origin, dest, exists, err := tools.RunValidateRoute(c, "DUB", "STN")
+	if err != nil {
+		t.Fatalf("validate_route: %v", err)
+	}
+	if origin != "DUB" || dest != "STN" {
+		t.Errorf("echoed route = %s-%s, want DUB-STN (output field mapping wrong)", origin, dest)
+	}
+	if !exists {
+		t.Error("DUB-STN should be a valid route")
+	}
+	if _, _, _, err := tools.RunValidateRoute(c, "XX", "STN"); err == nil {
+		t.Error("expected error for invalid origin IATA")
 	}
 }

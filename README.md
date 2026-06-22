@@ -37,7 +37,7 @@ Fare search · price calendars · timetables · the airport/route network — ov
 
 ## Features
 
-- **16 read tools** covering Ryanair's full anonymous API surface — one-way and
+- **12 read tools** covering Ryanair's full anonymous API surface — one-way and
   return fares, price calendars, cheapest-weekend search, timetables, and the
   airport/route network.
 - **Price history** — fares carry `previous_price` / `price_updated` /

@@ -1,12 +1,12 @@
 ---
 name: ryanair-flights
-description: Use when a user wants to find or compare Ryanair flights across Europe — cheapest one-way or return fares, "anywhere under €X" discovery, price calendars, cheapest-weekend trips, published timetables, or the airport/route network. Backed by the ryanair-mcp server (16 read-only tools over Ryanair's unofficial public API). Not for booking, seat selection, or live pricing/bags.
+description: Use when a user wants to find or compare Ryanair flights across Europe — cheapest one-way or return fares, "anywhere under €X" discovery, price calendars, cheapest-weekend trips, published timetables, or the airport/route network. Backed by the ryanair-mcp server (12 read-only tools over Ryanair's unofficial public API). Not for booking, seat selection, or live pricing/bags.
 license: MIT
 ---
 
 # Ryanair flights (ryanair-mcp)
 
-An MCP server exposing Ryanair's anonymous, read-only flight APIs as 16 tools.
+An MCP server exposing Ryanair's anonymous, read-only flight APIs as 12 tools.
 Use it to answer questions like "cheapest weekend from Dublin in August?",
 "where can I fly from Stansted under £30 next month?", or "does Ryanair fly
 DUB→BCN?".

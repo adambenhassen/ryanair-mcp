@@ -48,6 +48,72 @@ func RunActiveDates(c *ryanair.Client, origin, dest string) ([]string, error) {
 	return out.Dates, err
 }
 
+// OneWayArgs mirrors the search_one_way tool input for tests.
+type OneWayArgs struct {
+	Origin, DateFrom, DateTo, Destination, Country, Currency string
+	MaxPrice                                                 int
+}
+
+// RunSearchOneWay invokes the search_one_way handler end-to-end.
+func RunSearchOneWay(c *ryanair.Client, in OneWayArgs) ([]ryanair.Flight, error) {
+	h := searchOneWay(c)
+	_, out, err := h(context.Background(), nil, oneWayInput{
+		Origin: in.Origin, DateFrom: in.DateFrom, DateTo: in.DateTo,
+		Destination: in.Destination, Country: in.Country, MaxPrice: in.MaxPrice, Currency: in.Currency,
+	})
+	return out.Flights, err
+}
+
+// ReturnArgs mirrors the search_return tool input for tests.
+type ReturnArgs struct {
+	Origin, DateFrom, DateTo, Destination, Country, Currency string
+	ReturnFrom, ReturnTo                                     string
+	MinTripDays, MaxTripDays, MaxPrice                       int
+}
+
+// RunSearchReturn invokes the search_return handler end-to-end.
+func RunSearchReturn(c *ryanair.Client, in ReturnArgs) ([]ryanair.ReturnFlight, error) {
+	h := searchReturn(c)
+	_, out, err := h(context.Background(), nil, returnInput{
+		oneWayInput: oneWayInput{
+			Origin: in.Origin, DateFrom: in.DateFrom, DateTo: in.DateTo,
+			Destination: in.Destination, Country: in.Country, MaxPrice: in.MaxPrice, Currency: in.Currency,
+		},
+		ReturnFrom: in.ReturnFrom, ReturnTo: in.ReturnTo, MinTripDays: in.MinTripDays, MaxTripDays: in.MaxTripDays,
+	})
+	return out.Trips, err
+}
+
+// RunCheapestPerDay invokes the cheapest_per_day handler end-to-end.
+func RunCheapestPerDay(c *ryanair.Client, origin, dest, month, currency string) ([]ryanair.DailyFare, error) {
+	h := cheapestPerDay(c)
+	_, out, err := h(context.Background(), nil, calendarInput{Origin: origin, Destination: dest, Month: month, Currency: currency})
+	return out.Days, err
+}
+
+// RunGetSchedules invokes the get_schedules handler end-to-end.
+func RunGetSchedules(c *ryanair.Client, origin, dest string, year, month int) ([]ryanair.TimetableFlight, error) {
+	h := getSchedules(c)
+	_, out, err := h(context.Background(), nil, scheduleInput{Origin: origin, Destination: dest, Year: year, Month: month})
+	return out.Flights, err
+}
+
+// RunListAirports invokes the list_airports handler end-to-end.
+func RunListAirports(c *ryanair.Client, country string) ([]ryanair.Airport, error) {
+	h := listAirports(c)
+	_, out, err := h(context.Background(), nil, airportsInput{Country: country})
+	return out.Airports, err
+}
+
+// RunValidateRoute invokes the validate_route handler end-to-end, returning the
+// echoed origin/destination and existence flag so tests can assert the output
+// field mapping.
+func RunValidateRoute(c *ryanair.Client, origin, dest string) (gotOrigin, gotDest string, exists bool, err error) {
+	h := validateRoute(c)
+	_, out, err := h(context.Background(), nil, routeInput{Origin: origin, Destination: dest})
+	return out.Origin, out.Destination, out.Exists, err
+}
+
 // RunCheapestReturnPerDay invokes the cheapest_return_per_day handler end-to-end.
 func RunCheapestReturnPerDay(c *ryanair.Client, origin, dest, outMonth, inMonth string, minDur, maxDur int, currency string) ([]ryanair.DailyFare, []ryanair.DailyFare, error) {
 	h := cheapestReturnPerDay(c)

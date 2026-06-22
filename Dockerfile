@@ -9,7 +9,12 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ryanair-mcp ./cmd/ryanair-mcp
+# VERSION is the release tag, stamped into the binary so the MCP server reports
+# the real version to clients instead of a hand-maintained constant.
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -trimpath \
+	-ldflags="-s -w -X github.com/adambenhassen/ryanair-mcp/internal/server.version=${VERSION}" \
+	-o /out/ryanair-mcp ./cmd/ryanair-mcp
 
 # --- runtime ---
 # distroless static carries CA certs (needed for HTTPS to Ryanair) and runs as
