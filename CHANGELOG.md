@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-02
+
+### Changed
+
+- The MCP server now advertises its real release version to clients, stamped
+  from the release tag at build time (with a `go install module@vX` build-info
+  fallback) instead of a hand-maintained constant.
+- Unified the fare/calendar/schedule client surface on parameter structs and
+  consolidated repeated route-normalization logic. No change to the MCP tool
+  surface or behavior.
+
+[0.3.1]: https://github.com/adambenhassen/ryanair-mcp/releases/tag/v0.3.1
+
 ## [0.3.0] - 2026-06-18
 
 ### Added
