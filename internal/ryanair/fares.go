@@ -1,11 +1,9 @@
 package ryanair
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"net/url"
-	"slices"
 	"strconv"
 	"time"
 )
@@ -122,35 +120,6 @@ func (c *Client) OneWayFares(ctx context.Context, params OneWayParams) ([]Flight
 		flights = append(flights, flight)
 	}
 	return flights, nil
-}
-
-// AnywhereUnder returns the cheapest one-way fare per reachable destination from
-// an origin under params.MaxPrice, sorted ascending by price. Destination and
-// Country are ignored: the probe is network-wide.
-func (c *Client) AnywhereUnder(ctx context.Context, params OneWayParams) ([]Flight, error) {
-	if params.MaxPrice <= 0 {
-		return nil, fmt.Errorf("max price must be > 0, got %d", params.MaxPrice)
-	}
-	params.Destination = ""
-	params.Country = ""
-	flights, err := c.OneWayFares(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-	cheapest := make(map[string]Flight, len(flights))
-	for _, f := range flights {
-		if cur, ok := cheapest[f.Destination]; !ok || f.Price < cur.Price {
-			cheapest[f.Destination] = f
-		}
-	}
-	out := make([]Flight, 0, len(cheapest))
-	for _, f := range cheapest {
-		out = append(out, f)
-	}
-	slices.SortFunc(out, func(a, b Flight) int {
-		return cmp.Compare(a.Price, b.Price)
-	})
-	return out, nil
 }
 
 // RoundTripFares returns the cheapest return fares matching params.

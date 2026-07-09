@@ -158,16 +158,6 @@ func TestLiveSmoke(t *testing.T) {
 		}
 	})
 
-	t.Run("ValidateRoute", func(t *testing.T) {
-		ok, err := client.ValidateRoute(liveCtx(t), liveOrigin, liveDest)
-		if err != nil {
-			t.Fatalf("ValidateRoute: %v", err)
-		}
-		if !ok {
-			t.Errorf("expected %s-%s to be a valid route", liveOrigin, liveDest)
-		}
-	})
-
 	t.Run("ExploreDestinations", func(t *testing.T) {
 		dests, err := client.ExploreDestinations(liveCtx(t), ryanair.ExploreParams{Origin: liveOrigin})
 		if err != nil {
@@ -176,27 +166,6 @@ func TestLiveSmoke(t *testing.T) {
 		t.Logf("destinations from %s: %d", liveOrigin, len(dests))
 		if len(dests) == 0 {
 			t.Fatal("expected destinations (possible endpoint drift)")
-		}
-	})
-
-	t.Run("AnywhereUnder", func(t *testing.T) {
-		flights, err := client.AnywhereUnder(liveCtx(t), ryanair.OneWayParams{
-			Origin: liveOrigin, DateFrom: outFrom, DateTo: outTo, MaxPrice: 300,
-		})
-		if err != nil {
-			t.Fatalf("AnywhereUnder: %v", err)
-		}
-		t.Logf("destinations under cap from %s: %d", liveOrigin, len(flights))
-		// Cheapest-per-destination: no duplicates, ascending price.
-		seen := map[string]bool{}
-		for i, f := range flights {
-			if seen[f.Destination] {
-				t.Errorf("duplicate destination %q", f.Destination)
-			}
-			seen[f.Destination] = true
-			if i > 0 && flights[i-1].Price > f.Price {
-				t.Error("results not sorted ascending by price")
-			}
 		}
 	})
 

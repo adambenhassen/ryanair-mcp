@@ -108,16 +108,13 @@ docker run --rm -p 8080:8080 ghcr.io/adambenhassen/ryanair-mcp:latest \
 | --- | --- | --- |
 | `search_one_way` | Cheapest one-way fares from an origin in a date window. Omit destination/country to search anywhere. | `origin`, `date_from`, `date_to`, *(opt)* `destination`, `country`, `max_price`, `currency` |
 | `search_return` | Cheapest return fares across outbound and inbound windows, with optional trip-length bounds. | `origin`, `date_from`, `date_to`, `return_from`, `return_to`, *(opt)* `min_trip_days`, `max_trip_days`, … |
-| `find_anywhere_under` | Cheapest one-way fare to each reachable destination from an origin under a price cap, in a date window — returns a list of flights, one per destination, sorted by price. | `origin`, `date_from`, `date_to`, `max_price`, *(opt)* `currency` |
 | `cheapest_per_day` | Cheapest one-way fare per day of a month on a route (price calendar). | `origin`, `destination`, `month` (`YYYY-MM-01`), *(opt)* `currency` |
 | `cheapest_return_per_day` | Cheapest return fare per day on a route, outbound and inbound calendars side by side. | `origin`, `destination`, `outbound_month` (`YYYY-MM-01`), *(opt)* `inbound_month`, `min_trip_days`, `max_trip_days`, `currency` |
 | `cheapest_weekend` | Cheapest Fri→Sun (or Fri→Mon) return weekend on a route over the next few months. | `origin`, `destination`, *(opt)* `months_ahead` (default 3), `weekend_length` (`2`\|`3`, default 2) |
 | `get_active_dates` | Dates a route is currently bookable (ISO dates, no prices). | `origin`, `destination` |
 | `get_schedules` | Published timetable (days/times a route runs, no prices) for a month. | `origin`, `destination`, `year`, `month` |
-| `list_airports` | List Ryanair airports, optionally filtered by country. | *(opt)* `country` (ISO-3166 alpha-2) |
-| `validate_route` | Whether Ryanair flies a direct route between two airports. | `origin`, `destination` |
+| `list_airports` | List Ryanair airports filtered by country, or look up one airport's full metadata (city, region, timezone, coordinates) by IATA code. | *(opt)* `country` (ISO-3166 alpha-2), `code` (IATA) |
 | `explore_destinations` | Airports reachable from an origin (each flagged `seasonal` and carrying region/country metadata), optionally annotated with cheapest fares (`with_fares`) or per-route `operator`/`recent`/`tags` details (`with_route_details`), filtered, and grouped. | `origin`, *(opt)* `with_fares`, `with_route_details`, `date_from`, `date_to`, `currency`, `country`, `region`, `city`, `group_by` (`country`\|`region`) |
-| `airport_info` | Metadata for a single airport (city, region, country, timezone, coordinates). | `code` (IATA) |
 
 Airport inputs are IATA codes (e.g. `DUB`, `STN`). Dates are ISO `YYYY-MM-DD`.
 Currencies are ISO 4217 (e.g. `EUR`).
@@ -135,8 +132,8 @@ agent's skills directory at that folder, or copy it in.
 - **Session priming.** Cold calls to the services API sometimes return `403`, so
   the client warms a cookie jar against `www.ryanair.com` once before the first
   request.
-- **Network caching.** The airport/route bundle backing `list_airports`,
-  `validate_route`, and `explore_destinations` is cached for 6 hours.
+- **Network caching.** The airport/route bundle backing `list_airports` and
+  `explore_destinations` is cached for 6 hours.
 - **Retries.** Requests retry up to 3 times with capped exponential backoff,
   only on `429`, `5xx`, and network errors. Other failures surface immediately
   as an `APIError` carrying the endpoint, status, and a body snippet.

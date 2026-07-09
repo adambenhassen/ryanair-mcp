@@ -30,31 +30,6 @@ func TestListAirportsAndRoutes(t *testing.T) {
 	if len(ie) != 1 || ie[0].IataCode != "DUB" {
 		t.Errorf("IE airports = %+v, want [DUB]", ie)
 	}
-
-	ok, err := client.ValidateRoute(ctx, "DUB", "STN")
-	if err != nil {
-		t.Fatalf("ValidateRoute: %v", err)
-	}
-	if !ok {
-		t.Error("DUB-STN should be a valid route")
-	}
-
-	// Seasonal route should also count.
-	seasonal, err := client.ValidateRoute(ctx, "DUB", "AGA")
-	if err != nil {
-		t.Fatalf("ValidateRoute seasonal: %v", err)
-	}
-	if !seasonal {
-		t.Error("DUB-AGA seasonal route should validate")
-	}
-
-	none, err := client.ValidateRoute(ctx, "STN", "BCN")
-	if err != nil {
-		t.Fatalf("ValidateRoute none: %v", err)
-	}
-	if none {
-		t.Error("STN-BCN should not be a route")
-	}
 }
 
 func TestNetworkMetadataDepth(t *testing.T) {

@@ -49,8 +49,8 @@ func TestStdioSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListTools: %v", err)
 	}
-	if len(res.Tools) != 12 {
-		t.Errorf("tool count = %d, want 12", len(res.Tools))
+	if len(res.Tools) != 9 {
+		t.Errorf("tool count = %d, want 9", len(res.Tools))
 	}
 	got := make(map[string]bool, len(res.Tools))
 	for _, tl := range res.Tools {

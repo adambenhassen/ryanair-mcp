@@ -44,8 +44,6 @@ DUB→BCN?".
   omit destination/country to search anywhere. (`origin`, `date_from`, `date_to`)
 - `search_return` — cheapest returns across outbound + inbound windows, optional
   trip-length bounds. (`origin`, `date_from`, `date_to`, `return_from`, `return_to`)
-- `find_anywhere_under` — cheapest reachable destination under a price cap, one
-  flight per destination, sorted by price. (`origin`, `date_from`, `date_to`, `max_price`)
 - `cheapest_per_day` — one-way price calendar for a route over a month.
   (`origin`, `destination`, `month`)
 - `cheapest_return_per_day` — return price calendar, outbound + inbound side by
@@ -59,22 +57,21 @@ DUB→BCN?".
   (`origin`, `destination`, `year`, `month`)
 
 **Network & airports**
-- `list_airports` — all Ryanair airports, optional country filter.
-- `validate_route` — does Ryanair fly origin→destination directly?
+- `list_airports` — all Ryanair airports (optional `country` filter), or one
+  airport's full metadata via `code`.
 - `explore_destinations` — airports reachable from an origin, flagged seasonal,
   with region/country metadata; optional fares (`with_fares`), per-route
   operator/recent/tags details (`with_route_details`), filters, and `group_by`.
-- `airport_info` — metadata for one airport. (`code`)
 
 ## Recipes
 
 - **"Cheapest weekend away from X soon"** → `cheapest_weekend` (origin = X,
   destination = candidate, or loop a few candidates from `explore_destinations`).
-- **"Where can I go from X under €40 in July?"** → `find_anywhere_under`
-  (`max_price: 40`, `date_from`/`date_to` spanning July).
+- **"Where can I go from X under €40 in July?"** → `search_one_way` with no
+  destination (`max_price: 40`, `date_from`/`date_to` spanning July).
 - **"When are flights cheapest from X to Y this month?"** → `cheapest_per_day`.
-- **"Does Ryanair fly X→Y, and when does it run?"** → `validate_route`, then
-  `get_schedules`.
+- **"Does Ryanair fly X→Y, and when does it run?"** → `get_active_dates`
+  (empty = no route), then `get_schedules`.
 - **"What's reachable from X in Spain?"** → `explore_destinations`
   (`origin: X`, `country: es`).
 - **"Cheapest return to Y for a 3–5 night trip in August"** → `search_return`

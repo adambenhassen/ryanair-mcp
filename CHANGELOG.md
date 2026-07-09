@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `list_airports` gained an optional `code` input that returns a single
+  airport's full metadata (city, region, timezone, coordinates), replacing
+  `airport_info`.
+
+### Removed
+
+- Tools `find_anywhere_under`, `validate_route`, and `airport_info`.
+  `find_anywhere_under` was `search_one_way` with the destination omitted and a
+  price cap; `validate_route` is answered by `get_active_dates` (empty = no
+  route) or `explore_destinations`; `airport_info` is subsumed by
+  `list_airports` with `code`. **Breaking** for any caller relying on these
+  tool names.
+
 ## [0.3.1] - 2026-07-02
 
 ### Changed

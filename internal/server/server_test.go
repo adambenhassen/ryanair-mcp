@@ -21,10 +21,10 @@ import (
 
 // wantTools is every tool the server must expose over MCP.
 var wantTools = []string{
-	"search_one_way", "search_return", "find_anywhere_under",
+	"search_one_way", "search_return",
 	"cheapest_per_day", "cheapest_return_per_day", "cheapest_weekend",
-	"get_active_dates", "get_schedules", "list_airports", "validate_route",
-	"explore_destinations", "airport_info",
+	"get_active_dates", "get_schedules", "list_airports",
+	"explore_destinations",
 }
 
 // connect wires an in-memory MCP client to srv and returns the live client

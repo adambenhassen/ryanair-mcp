@@ -5,6 +5,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/adambenhassen/ryanair-mcp/internal/ryanair"
@@ -22,11 +23,6 @@ func Register(srv *mcp.Server, client *ryanair.Client) {
 		Name:        "search_return",
 		Description: "Find the cheapest Ryanair return fares across outbound and inbound date windows, with optional trip-duration limits.",
 	}, searchReturn(client))
-
-	mcp.AddTool(srv, &mcp.Tool{
-		Name:        "find_anywhere_under",
-		Description: "Find the cheapest reachable destination from an origin under a price cap, within a departure-date window. Returns the cheapest fare per destination, sorted by price.",
-	}, findAnywhereUnder(client))
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "cheapest_per_day",
@@ -55,23 +51,13 @@ func Register(srv *mcp.Server, client *ryanair.Client) {
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "list_airports",
-		Description: "List Ryanair airports, optionally filtered by ISO-3166 alpha-2 country code.",
+		Description: "List Ryanair airports, optionally filtered by ISO-3166 alpha-2 country code, or look up a single airport's full metadata (city, region, timezone, coordinates) by IATA code.",
 	}, listAirports(client))
-
-	mcp.AddTool(srv, &mcp.Tool{
-		Name:        "validate_route",
-		Description: "Check whether Ryanair flies a direct route between two airports.",
-	}, validateRoute(client))
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:        "explore_destinations",
 		Description: "List airports reachable from an origin, each flagged seasonal-only and carrying region/country metadata. Optionally annotate with cheapest fares in a date window (with_fares) or with per-route details — operating carrier, recently-added flag, and tags (with_route_details) — filter by country/region/city, and group by country or region.",
 	}, exploreDestinations(client))
-
-	mcp.AddTool(srv, &mcp.Tool{
-		Name:        "airport_info",
-		Description: "Get the metadata (city, region, country, timezone, coordinates) for a single airport by IATA code.",
-	}, airportInfo(client))
 }
 
 // --- search_one_way ---
@@ -143,39 +129,6 @@ func searchReturn(c *ryanair.Client) mcp.ToolHandlerFor[returnInput, returnsOutp
 			return nil, returnsOutput{}, err
 		}
 		return nil, returnsOutput{Trips: trips}, nil
-	}
-}
-
-// --- find_anywhere_under ---
-
-type anywhereInput struct {
-	Origin   string `json:"origin"             jsonschema:"departure airport IATA code"`
-	DateFrom string `json:"date_from"          jsonschema:"earliest outbound date, ISO YYYY-MM-DD"`
-	DateTo   string `json:"date_to"            jsonschema:"latest outbound date, ISO YYYY-MM-DD"`
-	MaxPrice int    `json:"max_price"          jsonschema:"maximum price (required, must be > 0)"`
-	Currency string `json:"currency,omitempty" jsonschema:"optional ISO 4217 currency, e.g. EUR"`
-}
-
-// toParams translates the anywhere-search input into client fare params.
-// Destination and Country are intentionally absent: AnywhereUnder probes the
-// whole network.
-func (in anywhereInput) toParams() ryanair.OneWayParams {
-	return ryanair.OneWayParams{
-		Origin:   in.Origin,
-		DateFrom: in.DateFrom,
-		DateTo:   in.DateTo,
-		MaxPrice: in.MaxPrice,
-		Currency: in.Currency,
-	}
-}
-
-func findAnywhereUnder(c *ryanair.Client) mcp.ToolHandlerFor[anywhereInput, flightsOutput] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in anywhereInput) (*mcp.CallToolResult, flightsOutput, error) {
-		flights, err := c.AnywhereUnder(ctx, in.toParams())
-		if err != nil {
-			return nil, flightsOutput{}, err
-		}
-		return nil, flightsOutput{Flights: flights}, nil
 	}
 }
 
@@ -327,6 +280,7 @@ func getSchedules(c *ryanair.Client) mcp.ToolHandlerFor[scheduleInput, scheduleO
 
 type airportsInput struct {
 	Country string `json:"country,omitempty" jsonschema:"optional ISO2 country code filter, e.g. ie"`
+	Code    string `json:"code,omitempty"    jsonschema:"optional airport IATA code, e.g. DUB — returns just that airport's metadata (mutually exclusive with country)"`
 }
 
 type airportsOutput struct {
@@ -335,34 +289,21 @@ type airportsOutput struct {
 
 func listAirports(c *ryanair.Client) mcp.ToolHandlerFor[airportsInput, airportsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in airportsInput) (*mcp.CallToolResult, airportsOutput, error) {
+		if in.Code != "" {
+			if in.Country != "" {
+				return nil, airportsOutput{}, errors.New("code and country are mutually exclusive")
+			}
+			airport, err := c.AirportInfo(ctx, in.Code)
+			if err != nil {
+				return nil, airportsOutput{}, err
+			}
+			return nil, airportsOutput{Airports: []ryanair.Airport{airport}}, nil
+		}
 		airports, err := c.ListAirports(ctx, in.Country)
 		if err != nil {
 			return nil, airportsOutput{}, err
 		}
 		return nil, airportsOutput{Airports: airports}, nil
-	}
-}
-
-// --- validate_route ---
-
-type routeInput struct {
-	Origin      string `json:"origin"      jsonschema:"departure airport IATA code"`
-	Destination string `json:"destination" jsonschema:"arrival airport IATA code"`
-}
-
-type routeOutput struct {
-	Origin      string `json:"origin"`
-	Destination string `json:"destination"`
-	Exists      bool   `json:"exists"`
-}
-
-func validateRoute(c *ryanair.Client) mcp.ToolHandlerFor[routeInput, routeOutput] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in routeInput) (*mcp.CallToolResult, routeOutput, error) {
-		exists, err := c.ValidateRoute(ctx, in.Origin, in.Destination)
-		if err != nil {
-			return nil, routeOutput{}, err
-		}
-		return nil, routeOutput{Origin: in.Origin, Destination: in.Destination, Exists: exists}, nil
 	}
 }
 
@@ -426,22 +367,6 @@ func exploreDestinations(c *ryanair.Client) mcp.ToolHandlerFor[exploreInput, exp
 			return nil, exploreOutput{}, err
 		}
 		return nil, exploreOutput{Groups: groups}, nil
-	}
-}
-
-// --- airport_info ---
-
-type airportCodeInput struct {
-	Code string `json:"code" jsonschema:"airport IATA code, e.g. DUB"`
-}
-
-func airportInfo(c *ryanair.Client) mcp.ToolHandlerFor[airportCodeInput, ryanair.Airport] {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, in airportCodeInput) (*mcp.CallToolResult, ryanair.Airport, error) {
-		airport, err := c.AirportInfo(ctx, in.Code)
-		if err != nil {
-			return nil, ryanair.Airport{}, err
-		}
-		return nil, airport, nil
 	}
 }
 

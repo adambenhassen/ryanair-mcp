@@ -99,19 +99,10 @@ func RunGetSchedules(c *ryanair.Client, origin, dest string, year, month int) ([
 }
 
 // RunListAirports invokes the list_airports handler end-to-end.
-func RunListAirports(c *ryanair.Client, country string) ([]ryanair.Airport, error) {
+func RunListAirports(c *ryanair.Client, country, code string) ([]ryanair.Airport, error) {
 	h := listAirports(c)
-	_, out, err := h(context.Background(), nil, airportsInput{Country: country})
+	_, out, err := h(context.Background(), nil, airportsInput{Country: country, Code: code})
 	return out.Airports, err
-}
-
-// RunValidateRoute invokes the validate_route handler end-to-end, returning the
-// echoed origin/destination and existence flag so tests can assert the output
-// field mapping.
-func RunValidateRoute(c *ryanair.Client, origin, dest string) (gotOrigin, gotDest string, exists bool, err error) {
-	h := validateRoute(c)
-	_, out, err := h(context.Background(), nil, routeInput{Origin: origin, Destination: dest})
-	return out.Origin, out.Destination, out.Exists, err
 }
 
 // RunCheapestReturnPerDay invokes the cheapest_return_per_day handler end-to-end.
@@ -131,20 +122,4 @@ func RunCheapestWeekend(c *ryanair.Client, origin, dest string, monthsAhead, wee
 		Origin: origin, Destination: dest, MonthsAhead: monthsAhead, WeekendLength: weekendLength,
 	})
 	return out.Trip, err
-}
-
-// RunAnywhereUnder invokes the find_anywhere_under handler end-to-end.
-func RunAnywhereUnder(c *ryanair.Client, origin, from, to string, maxPrice int) ([]ryanair.Flight, error) {
-	h := findAnywhereUnder(c)
-	_, out, err := h(context.Background(), nil, anywhereInput{
-		Origin: origin, DateFrom: from, DateTo: to, MaxPrice: maxPrice,
-	})
-	return out.Flights, err
-}
-
-// RunAirportInfo invokes the airport_info handler end-to-end.
-func RunAirportInfo(c *ryanair.Client, code string) (ryanair.Airport, error) {
-	h := airportInfo(c)
-	_, out, err := h(context.Background(), nil, airportCodeInput{Code: code})
-	return out, err
 }

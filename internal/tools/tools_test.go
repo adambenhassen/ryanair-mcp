@@ -145,20 +145,6 @@ func TestExploreHandlerCityFilterMapping(t *testing.T) {
 	}
 }
 
-func TestAnywhereHandler(t *testing.T) {
-	c := exploreClient(t)
-	flights, err := tools.RunAnywhereUnder(c, "DUB", "2026-07-01", "2026-07-31", 100)
-	if err != nil {
-		t.Fatalf("anywhere: %v", err)
-	}
-	if len(flights) == 0 {
-		t.Fatal("expected flights under cap")
-	}
-	if _, err := tools.RunAnywhereUnder(c, "DUB", "2026-07-01", "2026-07-31", 0); err == nil {
-		t.Error("expected error for max_price = 0")
-	}
-}
-
 func TestActiveDatesHandler(t *testing.T) {
 	c := exploreClient(t)
 	dates, err := tools.RunActiveDates(c, "DUB", "STN")
@@ -196,14 +182,17 @@ func TestCheapestWeekendHandler(t *testing.T) {
 	}
 }
 
-func TestAirportInfoHandler(t *testing.T) {
+func TestListAirportsHandlerCodeLookup(t *testing.T) {
 	c := exploreClient(t)
-	a, err := tools.RunAirportInfo(c, "DUB")
+	got, err := tools.RunListAirports(c, "", "DUB")
 	if err != nil {
-		t.Fatalf("airport info: %v", err)
+		t.Fatalf("airport lookup: %v", err)
 	}
-	if a.IataCode != "DUB" || a.RegionName != "Leinster" {
-		t.Errorf("airport = %+v", a)
+	if len(got) != 1 || got[0].IataCode != "DUB" || got[0].RegionName != "Leinster" {
+		t.Errorf("airport = %+v, want single DUB with Leinster region", got)
+	}
+	if _, err := tools.RunListAirports(c, "IE", "DUB"); err == nil {
+		t.Error("expected error for code+country together")
 	}
 }
 
@@ -374,35 +363,18 @@ func TestGetSchedulesHandlerWiring(t *testing.T) {
 
 func TestListAirportsHandlerWiring(t *testing.T) {
 	c := exploreClient(t)
-	all, err := tools.RunListAirports(c, "")
+	all, err := tools.RunListAirports(c, "", "")
 	if err != nil {
 		t.Fatalf("list_airports: %v", err)
 	}
 	if len(all) != 4 {
 		t.Errorf("airports = %d, want 4", len(all))
 	}
-	ie, err := tools.RunListAirports(c, "IE")
+	ie, err := tools.RunListAirports(c, "IE", "")
 	if err != nil {
 		t.Fatalf("list_airports(IE): %v", err)
 	}
 	if len(ie) != 1 || ie[0].IataCode != "DUB" {
 		t.Errorf("IE airports = %+v, want [DUB] (country filter mapping)", ie)
-	}
-}
-
-func TestValidateRouteHandlerWiring(t *testing.T) {
-	c := exploreClient(t)
-	origin, dest, exists, err := tools.RunValidateRoute(c, "DUB", "STN")
-	if err != nil {
-		t.Fatalf("validate_route: %v", err)
-	}
-	if origin != "DUB" || dest != "STN" {
-		t.Errorf("echoed route = %s-%s, want DUB-STN (output field mapping wrong)", origin, dest)
-	}
-	if !exists {
-		t.Error("DUB-STN should be a valid route")
-	}
-	if _, _, _, err := tools.RunValidateRoute(c, "XX", "STN"); err == nil {
-		t.Error("expected error for invalid origin IATA")
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"time"
 )
@@ -118,20 +117,6 @@ func (c *Client) ListAirports(ctx context.Context, country string) ([]Airport, e
 		}
 	}
 	return filtered, nil
-}
-
-// ValidateRoute reports whether origin has a (scheduled or seasonal) route to
-// dest in Ryanair's network.
-func (c *Client) ValidateRoute(ctx context.Context, origin, dest string) (bool, error) {
-	o, d, err := normRoute(origin, dest)
-	if err != nil {
-		return false, err
-	}
-	_, routes, seasonal, err := c.loadNetwork(ctx)
-	if err != nil {
-		return false, err
-	}
-	return slices.Contains(routes[o], d) || slices.Contains(seasonal[o], d), nil
 }
 
 // ExploreDestinations lists airports reachable from an origin, flagging
